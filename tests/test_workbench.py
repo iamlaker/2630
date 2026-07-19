@@ -100,6 +100,12 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("resultFavorites", state_js)
         self.assertIn("resultSections", state_js)
 
+    def test_compound_growth_single_value_ui_hooks(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # 单值指标卡片与编辑器只呈现活跃年份
+        self.assertIn("active_years", app)
+        self.assertIn("全期通用", app)
+
     def test_historical_template_read_only_switch_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
@@ -286,6 +292,38 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(rows[1]["title"], "（一）并表口径")
         self.assertEqual(rows[2]["name"], "归母净利润")
         self.assertIn("values", rows[2])
+
+    def test_pending_unpublished_rule_shows_as_pending_not_unsupported(self):
+        class UnpublishedRules(FakeRules):
+            def get_active_publication_rules(self, template_version_id):
+                return []
+
+            def get_active_publication(self, template_version_id):
+                return None
+
+        pending_rule = rule("银承复合增速", status="pending_confirmation")
+        templates = FakeTemplates()
+        templates.catalog.append({"row": 181, "display_name": "银承复合增速", "group": "资本假设", "unit": "%", "classification": "input", "cell_address": "B181", "year_values": {str(y): 0.05 for y in YEARS}})
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        service = WorkbenchService(templates, UnpublishedRules([pending_rule]), InMemoryWorkbookEngine, Path(directory.name))
+        param = next(item for item in service.initialize()["parameters"] if item["name"] == "银承复合增速")
+        self.assertEqual(param["rule_status"], "pending_confirmation")
+
+    def test_compound_growth_indicators_submit_and_expose_only_2026(self):
+        compound_rule = rule("6.对公贷款承诺复合增速")
+        compound_rule["confirmed_source_cells"] = [{"year": "2026", "sheet": "资本", "cell": "D181"}]
+        templates = FakeTemplates()
+        templates.catalog.append({"row": 181, "display_name": "6.对公贷款承诺复合增速", "group": "资本假设", "unit": "%", "classification": "input", "cell_address": "B181", "year_values": {"2026": 0.05, "2027": None, "2028": None, "2029": None, "2030": None}})
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        service = WorkbenchService(templates, FakeRules([rule(), rule("存款利率"), compound_rule]), InMemoryWorkbookEngine, Path(directory.name))
+        param = next(item for item in service.initialize()["parameters"] if "复合增速" in item["name"])
+        self.assertEqual(param["active_years"], [2026])
+        result = service.calculate(1, [{"rule_id": compound_rule["rule_id"], "indicator_id": "资本假设|6.对公贷款承诺复合增速|181", "values": {"2026": 0.06, "2027": 0.07, "2028": 0.07, "2029": 0.07, "2030": 0.07}}])
+        self.assertEqual(result["trust"]["status"], "valid")
+        self.assertEqual(result["edited_values"]["资本假设|6.对公贷款承诺复合增速|181"], {"2026": 0.06})
+        self.assertEqual(result["calculation_details"]["written_source_cells"][0]["values"], {"2026": 0.06})
 
     def test_section_level_recognizes_numbered_and_parenthesized_titles(self):
         from forecast_engine import section_level

@@ -752,6 +752,7 @@ class WorkbenchService:
         rules = self.rules.get_active_publication_rules(template["template_version_id"])
         publication = self.rules.get_active_publication(template["template_version_id"]) if hasattr(self.rules, "get_active_publication") else ({"publication_id": "active"} if rules else None)
         by_name = {item["display_name"]: item for item in rules}
+        latest_by_name = {item["display_name"]: item for item in (self.rules.list_latest_rule_summaries(template["template_version_id"]) if hasattr(self.rules, "list_latest_rule_summaries") else self._latest_rules(template["template_version_id"]))}
         parameters = []
         for indicator in catalog:
             if indicator.get("classification") != "input":
@@ -760,7 +761,9 @@ class WorkbenchService:
             parameters.append({
                 "id": self._indicator_id(indicator), "name": indicator["display_name"], "group": indicator["group"],
                 "unit": current_rule.get("display_unit") if current_rule else indicator.get("unit"), "row": indicator["row"], "location": indicator.get("cell_address"),
-                "baseline": indicator["year_values"], "rule": current_rule, "rule_status": current_rule["confirmation_status"] if current_rule else "unsupported",
+                "baseline": indicator["year_values"], "rule": current_rule,
+                "rule_status": current_rule["confirmation_status"] if current_rule else latest_by_name.get(indicator["display_name"], {}).get("confirmation_status", "unsupported"),
+                "active_years": self._active_years(indicator["display_name"]),
             })
         baseline = {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
         result_rows = self._result_rows(catalog, None, None, rules, template.get("sections"))
@@ -977,6 +980,9 @@ class WorkbenchService:
             if not rule or not indicator or rule["display_name"] != indicator["display_name"]:
                 raise ValueError("指标或规则标识无效")
             values = {str(year): float(value) for year, value in adjustment.get("values", {}).items()}
+            active_years = self._active_years(rule["display_name"])
+            if active_years:
+                values = {year: value for year, value in values.items() if int(year) in active_years}
             edited_values[adjustment["indicator_id"]] = values
             if rule["confirmation_status"] != "confirmed" or rule.get("configuration_pending"):
                 return {"edited_values": edited_values, "core_results": [], "details": [], "calculation_details": {"calculation_id": calculation_id, "started_at": started_at, "finished_at": datetime.now(timezone.utc).isoformat(), "duration_ms": round((time.perf_counter() - started) * 1000, 2), "stage": "blocked", "submitted_adjustments": adjustments, "written_source_cells": [], "log": [f"规则检查失败：{rule['display_name']} 尚未确认或配置未完成"]}, "trust": self._trust("pending_rule_confirmation", template, 0, None, {}, "所选指标规则尚未确认或配置未完成")}
@@ -1068,6 +1074,11 @@ class WorkbenchService:
             if first_input_row is None or section["row"] < first_input_row
         ]
         return sorted(rows + headers, key=lambda entry: entry["row"])
+
+    @staticmethod
+    def _active_years(display_name: str) -> list[int] | None:
+        """复合增速类指标为单值指标：只维护 2026（模板中其余年份是公式，不能写入）。"""
+        return [2026] if "复合增速" in display_name else None
 
     @staticmethod
     def _display_precision(rule: dict[str, Any]) -> int | None:

@@ -311,7 +311,7 @@ function renderYears() {
     editable = canEdit(item),
     range = item.rule?.allowed_range,
     step = item.rule?.minimum_step ?? "any";
-  $("years").innerHTML = years
+  $("years").innerHTML = (item.active_years || years)
     .map(
       (year) =>
         `<div class="year ${editable ? "" : "locked"}"><label><span>${year}</span><span>${item.unit || ""}</span></label><input type="number" step="${step}" data-year="${year}" value="${values[year] ?? ""}" ${editable ? "" : "disabled"}>${range ? `<input type="range" step="${step}" data-range="${year}" value="${values[year] ?? 0}" min="${range[0]}" max="${range[1]}" ${editable ? "" : "disabled"}>` : ""}<div class="baseline">基准 ${item.baseline[year]}</div><div class="delta">变化 ${((values[year] ?? item.baseline[year]) - item.baseline[year]).toFixed(4)}</div><button data-reset="${year}" ${editable ? "" : "disabled"}>恢复基准</button></div>`,
@@ -1151,8 +1151,9 @@ function deltaText(delta, unit, precision) {
 function forwardCardBody(item) {
   const values = state.edits[item.id] || item.baseline,
     range = canEdit(item) ? sliderRange(item) : null,
-    precision = rulePrecision(item);
-  return `<div class="year-tracks">${years.map((year) => {
+    precision = rulePrecision(item),
+    activeYears = item.active_years || years;
+  return `${item.active_years ? `<div class="single-year-note">全期通用 · 仅维护 ${item.active_years.join("、")}</div>` : ""}<div class="year-tracks">${activeYears.map((year) => {
     const current = Number(values[year] ?? item.baseline[year]),
       base = Number(item.baseline[year]);
     return `<div class="year-track${range ? "" : " locked"}"><label>${year}</label>${range ? `<input class="vertical-range" type="range" data-card-slide="${item.id}:${year}" min="${range[0]}" max="${range[1]}" step="${sliderStep(item, range)}" value="${Number.isFinite(current) ? current : 0}">` : ""}<span class="track-value">${trackText(current, item.unit, precision)}</span><span class="track-base">基准 ${trackText(base, item.unit, precision)}</span><span class="delta">${deltaText(current - base, item.unit, precision)}</span></div>`;
