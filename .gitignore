@@ -3,3 +3,4 @@ __pycache__/
 .workbench/*.sqlite3*
 .workbench-server*.log
 ~$*
+.scratch/shots/

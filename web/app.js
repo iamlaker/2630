@@ -506,10 +506,10 @@ async function poll() {
         (data.variables || [data.variable])
           .map(
             (x) =>
-              `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${x.suggested_value ?? x.required_value}</div><div class="years-mini">调整 ${x.adjustment} · ${x.hit_boundary ? "触及边界" : "范围内"}</div>${x.reason ? `<div class="years-mini reason">启用原因：${x.reason}</div>` : ""}</article>`,
+              `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${formatResultValue(x.suggested_value ?? x.required_value, unitForIndicator(x.indicator_name)) || "—"}</div><div class="years-mini">调整 ${formatResultValue(x.adjustment, unitForIndicator(x.indicator_name)) || "—"} · ${x.hit_boundary ? "触及边界" : "范围内"}</div>${x.reason ? `<div class="years-mini reason">启用原因：${x.reason}</div>` : ""}</article>`,
           )
           .join("") +
-        `<article class="card"><h3>搜索摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${data.soft_deviation}</div></article>` +
+        `<article class="card"><h3>搜索摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${formatResultValue(data.soft_deviation) || "—"}</div></article>` +
         data.constraints
           .map(
             (x) =>
@@ -664,7 +664,7 @@ function renderCards(cards = []) {
     cards
       .map(
         (card) =>
-          `<article class="card"><h3>${card.name}</h3><div class="metric">${card.values?.[2030] ?? "—"}</div><div class="years-mini">${years.map((y) => `${y} ${card.values?.[y] ?? "—"}`).join(" · ")}</div></article>`,
+          `<article class="card"><h3>${card.name}</h3><div class="metric">${formatResultValue(card.values?.[2030], card.unit) || "—"}</div><div class="years-mini">${years.map((y) => `${y} ${formatResultValue(card.values?.[y], card.unit) || "—"}`).join(" · ")}</div></article>`,
       )
       .join("") || '<div class="empty">尚未识别到核心结果</div>';
 }
@@ -1555,14 +1555,28 @@ const CORE_CARD_ALIASES = {
 function cardsFromSnapshot(snapshot) {
   return Object.entries(CORE_CARD_ALIASES)
     .map(([label, aliases]) => {
-      const match = Object.keys(snapshot).find((name) =>
-        aliases.some((alias) => name.toLowerCase().includes(alias)),
-      );
+      const match = matchCoreName(Object.keys(snapshot), aliases);
       return match
-        ? { name: label, source_name: match, values: snapshot[match] }
+        ? { name: label, source_name: match, unit: unitForIndicator(match), values: snapshot[match] }
         : null;
     })
     .filter(Boolean);
+}
+function matchCoreName(names, aliases) {
+  for (const alias of aliases) {
+    const hit = names.find((name) => name.toLowerCase() === alias.toLowerCase());
+    if (hit) return hit;
+  }
+  for (const alias of aliases) {
+    const hit = names.find((name) => name.toLowerCase().includes(alias.toLowerCase()));
+    if (hit) return hit;
+  }
+  return null;
+}
+function unitForIndicator(name) {
+  const param = (state.data?.parameters || []).find((p) => p.name === name);
+  if (param?.unit) return param.unit;
+  return (state.data?.details || []).find((d) => d.name === name)?.unit;
 }
 async function loadScenarios() {
   try {
@@ -1677,7 +1691,7 @@ function renderComparison(data) {
     data.core_results
       .map(
         (card) =>
-          `<article class="card comparison-card"><h3>${card.name}</h3>${card.scenarios.map((sc) => `<div class="scenario-value ${sc.values ? "" : "comparison-failure"}"><strong>${sc.name}</strong>${sc.values ? `${sc.values["2030"] ?? "—"} <small>Δ ${sc.differences?.["2030"] ?? "—"}</small>` : "无有效结果"}</div>`).join("")}</article>`,
+          `<article class="card comparison-card"><h3>${card.name}</h3>${card.scenarios.map((sc) => `<div class="scenario-value ${sc.values ? "" : "comparison-failure"}"><strong>${sc.name}</strong>${sc.values ? `${formatResultValue(sc.values["2030"], card.unit) || "—"} <small>Δ ${formatResultValue(sc.differences?.["2030"], card.unit) || "—"}</small>` : "无有效结果"}</div>`).join("")}</article>`,
       )
       .join("") || '<div class="empty">没有可对比的核心指标</div>';
   $("comparisonGroup").innerHTML =

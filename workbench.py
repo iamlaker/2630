@@ -38,6 +38,21 @@ CORE_ALIASES = {
     "LCR": ("流动性覆盖率", "LCR"),
     "NSFR": ("净稳定资金比例", "NSFR"),
 }
+
+
+def _match_core_name(names: list[str], aliases: tuple[str, ...]) -> str | None:
+    """先精确名匹配，再按别名顺序子串匹配，避免"其中：利息净收入"抢走"净息差"。"""
+    folded = {name.casefold(): name for name in names}
+    for alias in aliases:
+        hit = folded.get(alias.casefold())
+        if hit is not None:
+            return hit
+    for alias in aliases:
+        needle = alias.casefold()
+        hit = next((name for name in names if needle in name.casefold()), None)
+        if hit is not None:
+            return hit
+    return None
 ACTIVITY_TEMPLATE_FINGERPRINT = "a27df7cb03878ea11779e82d1c7eca3b45abf227e6bddd6d269d77b7d62fbdee"
 
 
@@ -331,7 +346,8 @@ class WorkbenchService:
 
         baseline = next(row for row in rows if row["scenario_id"] == baseline_id)
         baseline_snapshot = baseline.get("calculation_result_snapshot") or {}
-        cards = self._comparison_cards(rows, baseline_snapshot)
+        baseline_template = self.templates.get_indicator_catalog(baseline["template_version_id"])
+        cards = self._comparison_cards(rows, baseline_snapshot, (baseline_template or {}).get("indicator_catalog"))
         details = self._comparison_details(rows, baseline_snapshot)
         valid_count = sum(row["status"] == "succeeded" for row in rows)
         summary = {"total": len(rows), "valid": valid_count, "failed": len(rows) - valid_count}
@@ -373,19 +389,20 @@ class WorkbenchService:
         return adjustments
 
     @staticmethod
-    def _comparison_cards(rows: list[dict[str, Any]], baseline: dict[str, Any]) -> list[dict[str, Any]]:
+    def _comparison_cards(rows: list[dict[str, Any]], baseline: dict[str, Any], catalog: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
         cards = []
+        units = {item["display_name"]: item.get("unit") for item in catalog or ()}
         snapshots = [row["calculation_result_snapshot"] or {} for row in rows]
         names = list(dict.fromkeys(name for snapshot in snapshots for name in snapshot))
         for label, aliases in CORE_ALIASES.items():
-            metric = next((name for name in names if any(alias.casefold() in name.casefold() for alias in aliases)), None)
+            metric = _match_core_name(names, aliases)
             if not metric:
                 continue
             values = []
             for row, snapshot in zip(rows, snapshots):
                 yearly = snapshot.get(metric) if row["status"] == "succeeded" else None
                 values.append({"scenario_id": row["scenario_id"], "name": row["name"], "values": yearly, "differences": WorkbenchService._year_differences(yearly, baseline.get(metric))})
-            cards.append({"name": label, "source_name": metric, "scenarios": values})
+            cards.append({"name": label, "source_name": metric, "unit": units.get(metric), "scenarios": values})
         return cards
 
     def _comparison_details(self, rows: list[dict[str, Any]], baseline: dict[str, Any]) -> list[dict[str, Any]]:
@@ -757,7 +774,7 @@ class WorkbenchService:
             "template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"], "activity": not read_only, "editable": bool(publication) and not read_only, "read_only": read_only},
             "templates": [{"id": item["template_version_id"], "version": item["template_version"], "fingerprint": item["template_fingerprint"], "activity": item["template_version_id"] == activity["template_version_id"], "read_only": item["template_version_id"] != activity["template_version_id"]} for item in versions],
             "rule_set": {"active": bool(publication), "publication_id": publication.get("publication_id") if publication else None, "rule_count": len(rules)},
-            "parameters": parameters, "baseline_results": baseline, "core_results": self._core_results(baseline, baseline),
+            "parameters": parameters, "baseline_results": baseline, "core_results": self._core_results(baseline, baseline, catalog),
             "details": self._details(catalog, baseline, baseline), "result_rows": result_rows, "display_defaults": self.display_defaults(), "trust": trust,
             "scenario_draft": scenario_draft,
         }
@@ -1005,7 +1022,7 @@ class WorkbenchService:
         finished_at = datetime.now(timezone.utc).isoformat()
         publication = self.rules.get_active_publication(template_version_id) if hasattr(self.rules, "get_active_publication") else None
         return {
-            "edited_values": edited_values, "core_results": self._core_results(outputs, baseline), "details": self._details(catalog, outputs, baseline), "result_rows": result_rows,
+            "edited_values": edited_values, "core_results": self._core_results(outputs, baseline, catalog), "details": self._details(catalog, outputs, baseline), "result_rows": result_rows,
             "calculation_details": {"calculation_id": calculation_id, "started_at": started_at, "finished_at": finished_at, "duration_ms": round((time.perf_counter() - started) * 1000, 2), "stage": "completed" if result["calculation_status"] == "valid" else "failed", "template_version_id": template_version_id, "rule_publication_id": publication.get("publication_id") if publication else None, "engine_mode_requested": requested_engine_mode, "engine_mode": result.get("engine_mode", requested_engine_mode), "worker_id": result.get("worker_id"), "queue_wait_ms": result.get("queue_wait_ms", 0), "cancel_status": result.get("cancel_status", "not_requested"), "fallback_reason": fallback_reason, "submitted_adjustments": adjustments, "written_source_cells": written, "cycle_converged": result["cycle_converged"], "iterations": result["iterations"], "final_differences": result["final_differences"], "stage_timings": result.get("stage_timings", {}), "error": result["error"], "log": [f"计算引擎 {result.get('engine_mode', requested_engine_mode)}" + (f"（warm 回退：{fallback_reason}）" if fallback_reason else ""), f"已校验 {len(adjustments)} 项输入调整", f"已写入 {len(written)} 条活动规则映射", f"循环计算 {result['iterations']} 次", "计算有效" if result["calculation_status"] == "valid" else (result["error"] or result["calculation_status"])]},
             "trust": self._trust(result["calculation_status"], template, result["iterations"], result["final_difference"], result["final_differences"], result["error"], publication),
             "scenario_draft": {"scenario_type": "custom", "template_version_id": template_version_id, "rule_publication_id": publication.get("publication_id") if publication else None, "input_adjustments": edited_values, "calculation_result_snapshot": outputs, "validation_state": result["calculation_status"]},
@@ -1052,13 +1069,14 @@ class WorkbenchService:
         return len(f"{step:.10f}".rstrip("0").rstrip(".").partition(".")[2])
 
     @staticmethod
-    def _core_results(outputs: dict[str, Any], baseline: dict[str, Any]) -> list[dict[str, Any]]:
+    def _core_results(outputs: dict[str, Any], baseline: dict[str, Any], catalog: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+        units = {item["display_name"]: item.get("unit") for item in catalog or ()}
         cards = []
         for label, aliases in CORE_ALIASES.items():
-            match = next((name for name in outputs if any(alias.casefold() in name.casefold() for alias in aliases)), None)
+            match = _match_core_name(list(outputs), aliases)
             if match:
                 values, before = outputs[match], baseline.get(match, {})
-                cards.append({"name": label, "source_name": match, "values": values, "changes": {year: (value - before[year]) if isinstance(value, (int, float)) and isinstance(before.get(year), (int, float)) else None for year, value in values.items()}})
+                cards.append({"name": label, "source_name": match, "unit": units.get(match), "values": values, "changes": {year: (value - before[year]) if isinstance(value, (int, float)) and isinstance(before.get(year), (int, float)) else None for year, value in values.items()}})
         return cards
 
     @staticmethod

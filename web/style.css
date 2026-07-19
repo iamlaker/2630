@@ -13,6 +13,8 @@
   --right-pane: 520px;
 }
 
+[hidden] { display: none !important; }
+
 .shell { height: 100vh; display: grid; grid-template-rows: auto auto auto 1fr; overflow: hidden; }
 .topbar { min-height: 66px; height: auto; padding: 10px 20px; display: flex; gap: 22px; justify-content: flex-start; }
 .brand { min-width: 220px; }
