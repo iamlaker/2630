@@ -1,0 +1,621 @@
+{
+  "started_at": "2026-07-17T14:24:46.838541+00:00",
+  "publication_id": "0b473b8a-44d5-40e0-a957-ed151116fd44",
+  "template_fingerprint": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+  "template_sha256_before": "a27df7cb03878ea11779e82d1c7eca3b45abf227e6bddd6d269d77b7d62fbdee",
+  "template_sha256_after": "a27df7cb03878ea11779e82d1c7eca3b45abf227e6bddd6d269d77b7d62fbdee",
+  "template_unchanged": true,
+  "original_path_matches_activity_fingerprint": false,
+  "catalog_activity_copy_sha256_before": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+  "catalog_activity_copy_sha256_after": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+  "catalog_activity_copy_unchanged": true,
+  "excel_pids_before": [
+    10036,
+    52656
+  ],
+  "excel_pids_after": [
+    10036,
+    52656
+  ],
+  "new_orphan_excel_pids": [],
+  "cold": {
+    "duration_s": 13.9,
+    "status": "valid",
+    "iterations": 2,
+    "final_differences": {
+      "profitability": 0.0029670738222193904,
+      "segment": 0.0
+    },
+    "engine_mode": null,
+    "worker_id": null,
+    "queue_wait_ms": null,
+    "stage_timings": {
+      "template_copy": [
+        3.58
+      ],
+      "excel_start": [
+        2411.45
+      ],
+      "workbook_open": [
+        2776.63
+      ],
+      "baseline_summary_read": [
+        47.38
+      ],
+      "write_input": [
+        149.1
+      ],
+      "initial_recalculate": [
+        63.62
+      ],
+      "cycle_copy": [
+        89.11,
+        61.36
+      ],
+      "recalculate": [
+        45.41,
+        52.82
+      ],
+      "cycle_diff_read": [
+        21.21,
+        28.47
+      ],
+      "result_summary_read": [
+        21.86
+      ],
+      "close_cleanup": [
+        8074.81
+      ]
+    }
+  },
+  "warm_first": {
+    "duration_s": 13.195,
+    "status": "valid",
+    "iterations": 2,
+    "final_differences": {
+      "profitability": 0.0029670738222193904,
+      "segment": 0.0
+    },
+    "engine_mode": "warm_com",
+    "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+    "queue_wait_ms": 0.03,
+    "stage_timings": {
+      "template_copy": [
+        31.92
+      ],
+      "excel_start": [
+        0.02
+      ],
+      "workbook_open": [
+        9974.66
+      ],
+      "baseline_summary_read": [
+        25.74
+      ],
+      "write_input": [
+        182.62
+      ],
+      "initial_recalculate": [
+        64.11
+      ],
+      "cycle_copy": [
+        92.08,
+        81.33
+      ],
+      "recalculate": [
+        50.38,
+        39.34
+      ],
+      "cycle_diff_read": [
+        35.58,
+        38.66
+      ],
+      "result_summary_read": [
+        17.23
+      ],
+      "restore_state": [
+        246.61
+      ]
+    }
+  },
+  "warm_continuous": {
+    "count": 9,
+    "median_s": 0.815,
+    "p95_s": 0.95,
+    "runs": [
+      {
+        "duration_s": 0.85,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.004444471280294238,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.05,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            47.4
+          ],
+          "write_input": [
+            131.14
+          ],
+          "initial_recalculate": [
+            49.49
+          ],
+          "cycle_copy": [
+            79.09,
+            78.58
+          ],
+          "recalculate": [
+            52.8,
+            48.6
+          ],
+          "cycle_diff_read": [
+            41.25,
+            25.49
+          ],
+          "result_summary_read": [
+            13.64
+          ],
+          "restore_state": [
+            254.78
+          ]
+        }
+      },
+      {
+        "duration_s": 0.859,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.0029621622616105014,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.04,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            18.03
+          ],
+          "write_input": [
+            138.46
+          ],
+          "initial_recalculate": [
+            50.71
+          ],
+          "cycle_copy": [
+            81.64,
+            81.29
+          ],
+          "recalculate": [
+            53.84,
+            43.34
+          ],
+          "cycle_diff_read": [
+            48.84,
+            28.58
+          ],
+          "result_summary_read": [
+            21.34
+          ],
+          "restore_state": [
+            255.07
+          ]
+        }
+      },
+      {
+        "duration_s": 0.796,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.001479853237469797,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            26.89
+          ],
+          "write_input": [
+            130.0
+          ],
+          "initial_recalculate": [
+            46.78
+          ],
+          "cycle_copy": [
+            76.19,
+            75.35
+          ],
+          "recalculate": [
+            71.6,
+            40.78
+          ],
+          "cycle_diff_read": [
+            22.27,
+            37.29
+          ],
+          "result_summary_read": [
+            18.39
+          ],
+          "restore_state": [
+            233.87
+          ]
+        }
+      },
+      {
+        "duration_s": 0.587,
+        "status": "valid",
+        "iterations": 1,
+        "final_differences": {
+          "profitability": 0.00031406721245730296,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.03,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            17.23
+          ],
+          "write_input": [
+            112.02
+          ],
+          "initial_recalculate": [
+            44.37
+          ],
+          "cycle_copy": [
+            74.81
+          ],
+          "recalculate": [
+            42.27
+          ],
+          "cycle_diff_read": [
+            33.03
+          ],
+          "result_summary_read": [
+            15.39
+          ],
+          "restore_state": [
+            236.99
+          ]
+        }
+      },
+      {
+        "duration_s": 0.77,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.0014847648035356542,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.03,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            21.64
+          ],
+          "write_input": [
+            131.41
+          ],
+          "initial_recalculate": [
+            49.99
+          ],
+          "cycle_copy": [
+            79.12,
+            69.2
+          ],
+          "recalculate": [
+            53.38,
+            41.62
+          ],
+          "cycle_diff_read": [
+            37.34,
+            26.93
+          ],
+          "result_summary_read": [
+            14.26
+          ],
+          "restore_state": [
+            219.76
+          ]
+        }
+      },
+      {
+        "duration_s": 0.815,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.004449382846360095,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.04,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            16.79
+          ],
+          "write_input": [
+            140.43
+          ],
+          "initial_recalculate": [
+            49.44
+          ],
+          "cycle_copy": [
+            79.51,
+            64.03
+          ],
+          "recalculate": [
+            43.74,
+            57.09
+          ],
+          "cycle_diff_read": [
+            34.44,
+            32.77
+          ],
+          "result_summary_read": [
+            21.62
+          ],
+          "restore_state": [
+            251.49
+          ]
+        }
+      },
+      {
+        "duration_s": 0.833,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.005931691861405852,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.03,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            23.23
+          ],
+          "write_input": [
+            117.37
+          ],
+          "initial_recalculate": [
+            52.53
+          ],
+          "cycle_copy": [
+            85.71,
+            76.13
+          ],
+          "recalculate": [
+            56.92,
+            55.82
+          ],
+          "cycle_diff_read": [
+            31.0,
+            39.02
+          ],
+          "result_summary_read": [
+            15.02
+          ],
+          "restore_state": [
+            261.94
+          ]
+        }
+      },
+      {
+        "duration_s": 0.796,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.0074140008800895885,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.02,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            30.79
+          ],
+          "write_input": [
+            115.75
+          ],
+          "initial_recalculate": [
+            45.17
+          ],
+          "cycle_copy": [
+            64.27,
+            64.87
+          ],
+          "recalculate": [
+            43.94,
+            43.37
+          ],
+          "cycle_diff_read": [
+            30.67,
+            30.14
+          ],
+          "result_summary_read": [
+            50.92
+          ],
+          "restore_state": [
+            258.09
+          ]
+        }
+      },
+      {
+        "duration_s": 0.95,
+        "status": "valid",
+        "iterations": 2,
+        "final_differences": {
+          "profitability": 0.008896309898773325,
+          "segment": 0.0
+        },
+        "engine_mode": "warm_com",
+        "worker_id": "d66c48bf-9274-4503-98e7-79d22b91cf09",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            17.0
+          ],
+          "write_input": [
+            134.72
+          ],
+          "initial_recalculate": [
+            49.55
+          ],
+          "cycle_copy": [
+            119.74,
+            95.68
+          ],
+          "recalculate": [
+            48.21,
+            51.6
+          ],
+          "cycle_diff_read": [
+            51.17,
+            41.23
+          ],
+          "result_summary_read": [
+            41.16
+          ],
+          "restore_state": [
+            273.91
+          ]
+        }
+      }
+    ]
+  },
+  "cold_warm_comparison": {
+    "keys_equal": true,
+    "only_in_reference": [],
+    "only_in_candidate": [],
+    "max_abs_diff": 0.0,
+    "mismatch_count": 0,
+    "mismatch_sample": []
+  },
+  "state_isolation": {
+    "different_input_count": 10,
+    "inputs": [
+      0.0185,
+      0.016,
+      0.0165,
+      0.017,
+      0.0175,
+      0.018,
+      0.019,
+      0.0195,
+      0.02,
+      0.0205
+    ],
+    "profitability_2026": [
+      757.6692767303151,
+      758.0351237262068,
+      757.9619543270284,
+      757.8887849278501,
+      757.8156155629943,
+      757.7424461294935,
+      757.5961073311369,
+      757.5229379319585,
+      757.4497685327802,
+      757.376599133602
+    ],
+    "first_request_repeat_comparison": {
+      "keys_equal": true,
+      "only_in_reference": [],
+      "only_in_candidate": [],
+      "max_abs_diff": 0.0,
+      "mismatch_count": 0,
+      "mismatch_sample": []
+    },
+    "distinct_output_snapshot_count": 10,
+    "passed": true
+  },
+  "cycle_within_tolerance": true
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>五年经营测算台</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand"><small>BANK FORECAST / 2026—2030</small><strong>五年经营测算台</strong></div>
+        <nav class="module-tabs" aria-label="工作台模块">
+          <button class="module-tab active" data-module="forward">正向单场景</button>
+          <button class="module-tab" data-module="single">单变量反向</button>
+          <button class="module-tab" data-module="multi">多输入反推</button>
+          <button class="module-tab" data-module="rules">规则集维护</button>
+        </nav>
+        <div class="top-actions">
+          <span id="workerHealth" class="health">● 热启动待检查</span>
+          <select id="engineMode" title="计算引擎"><option value="warm_com">warm_com</option><option value="cold_com">cold_com</option></select>
+          <div id="forwardMode" class="mode"><button data-mode="auto" class="active">自动</button><button data-mode="manual">手动</button></div>
+          <button id="calculateTop" class="run">执行测算</button>
+        </div>
+      </header>
+      <div class="context-strip">
+        <b id="templateMeta">加载活动模板…</b><span id="scenarioMeta">未命名草稿</span><span id="engineMeta">Excel COM / warm</span><span id="draftStatus" class="dirty"></span>
+      </div>
+      <div id="workspaceNotice" class="workspace-notice" hidden></div>
+      <nav id="mobilePaneTabs" class="mobile-pane-tabs" aria-label="窄屏区域">
+        <button data-mobile-pane="left">导航</button><button data-mobile-pane="center" class="active">卡片</button><button data-mobile-pane="right">结果</button>
+      </nav>
+      <main id="workspace" class="workspace" data-mobile-pane="center">
+        <aside id="leftPane" class="pane left-pane">
+          <div class="pane-head"><strong id="leftTitle">输入参数</strong><span id="adjustedCount" class="count">0 项已修改</span></div>
+          <input id="search" class="search" placeholder="搜索输入指标" />
+          <div class="filters"><select id="group"><option value="">全部分组</option></select><label><input type="checkbox" id="favorites" /> 星标</label><label><input type="checkbox" id="adjusted" /> 已修改</label><label><input type="checkbox" id="pending" /> 异常</label></div>
+          <div class="status-legend"><span class="tag selected">已选</span><span class="tag edited">已修改</span><span class="tag constraint">有限定</span></div>
+          <div id="parameterTree" class="groups"></div>
+        </aside>
+        <div class="pane-resizer" data-resize="left" title="拖动调整；双击恢复"></div>
+        <section id="centerPane" class="pane center-pane">
+          <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div></div>
+          <div id="editorEmpty" class="empty">从左侧选择指标加入卡片</div>
+          <div id="cardGrid" class="card-grid"></div>
+          <div id="editor" class="editor" hidden>
+            <div class="editor-context"><div><div class="eyebrow" id="editorGroup"></div><h2 id="editorName"></h2><p id="editorSummary"></p></div><div class="ruleline"><span id="editorRule"></span><span id="editorVersion"></span></div></div>
+            <div class="control-head"><span>规则驱动编辑 <b id="editMode"></b></span></div>
+            <div id="years" class="years"></div>
+            <div class="editor-actions"><button id="resetOne">恢复当前指标</button><button class="primary" id="calculate">执行测算</button></div>
+            <div id="reverseWorkspace"></div>
+            <details><summary>规则追踪</summary><pre id="ruleDetails"></pre></details>
+          </div>
+        </section>
+        <div class="pane-resizer" data-resize="right" title="拖动调整；双击恢复"></div>
+        <aside id="rightPane" class="pane right-pane">
+          <div class="pane-head"><strong>结果与可信状态</strong><span id="statusBadge" class="badge pending">未计算</span></div>
+          <div id="trust" class="trust"></div>
+          <div id="taskProgress" class="task-progress" hidden><div id="taskStage">—</div><div id="taskMeta"></div><button id="cancelCalc">取消测算</button></div>
+          <div class="output-tools"><button id="engineValidation">引擎验证</button><button id="exportScenario">导出当前结果</button><button id="exportReverse" disabled>导出反向结果</button><button id="exportComparison" disabled>导出对比结果</button></div>
+          <div class="output-navigation"><input id="outputSearch" placeholder="搜索输出指标"><div id="outputGroups"></div></div>
+          <div id="cards" class="cards"></div>
+          <details class="scenarios"><summary>命名场景</summary><div class="scenario-save"><input id="scenarioName" placeholder="场景名称" /><select id="scenarioType"><option value="custom">自定义</option><option value="baseline">基准</option><option value="optimistic">乐观</option><option value="pessimistic">悲观</option></select><button id="saveScenario">保存</button></div><div class="comparison-actions"><label><input type="checkbox" id="comparisonForce" /> 强制刷新</label><button id="startComparison">开始对比</button></div><div id="scenarioList"></div></details>
+          <details open><summary>C–J 完整指标结果</summary><div class="detail-filters"><input id="detailSearch" placeholder="搜索指标" /><select id="comparisonYear"><option value="">全部年度</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option></select><select id="comparisonGroup"><option value="">全部分组</option></select><select id="comparisonScenario"><option value="">全部场景</option></select></div><div id="details" class="details"></div></details>
+          <details><summary>循环收敛与计算日志</summary><div id="calculationTrace" class="trace">尚未执行测算</div></details>
+        </aside>
+        <section id="rulesPane" class="rules-pane" hidden><div class="rules-toolbar"><button id="saveDisplayDefaults">管理员：保存当前展示项为全局默认</button><span>未登录管理员时保持只读</span></div><iframe id="rulesFrame" title="规则集维护" src="/rules.html?embedded=1"></iframe></section>
+      </main>
+    </div>
+    <script src="/workbench-state.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

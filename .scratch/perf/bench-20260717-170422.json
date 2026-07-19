@@ -1,0 +1,424 @@
+{
+ "started_at": "2026-07-17T09:02:54.378653+00:00",
+ "publication_id": "0b473b8a-44d5-40e0-a957-ed151116fd44",
+ "template_fingerprint": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+ "template_sha256_before": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+ "indicator": "10年期国债收益率",
+ "adjustment": {
+  "2026": 0.0185,
+  "2027": 0.0175,
+  "2028": 0.0175,
+  "2029": 0.0175,
+  "2030": 0.0175
+ },
+ "runs": {
+  "full_rebuild": {
+   "recalc_mode": "full_rebuild",
+   "read_baseline": true,
+   "total_s": 6.16,
+   "status": "valid",
+   "iterations": 2,
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "snapshot_count": 161,
+   "stage_timings": {
+    "template_copy": [
+     5.88
+    ],
+    "excel_start": [
+     2712.8
+    ],
+    "workbook_open": [
+     2228.9
+    ],
+    "baseline_summary_read": [
+     43.33
+    ],
+    "write_input": [
+     196.13
+    ],
+    "initial_recalculate": [
+     79.88
+    ],
+    "cycle_copy": [
+     97.38,
+     91.24
+    ],
+    "recalculate": [
+     51.87,
+     50.59
+    ],
+    "cycle_diff_read": [
+     49.85,
+     36.55
+    ],
+    "result_summary_read": [
+     23.8
+    ],
+    "close_cleanup": [
+     439.53
+    ]
+   }
+  },
+  "full": {
+   "recalc_mode": "full",
+   "read_baseline": true,
+   "total_s": 13.46,
+   "status": "valid",
+   "iterations": 2,
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "snapshot_count": 161,
+   "stage_timings": {
+    "template_copy": [
+     5.09
+    ],
+    "excel_start": [
+     2429.17
+    ],
+    "workbook_open": [
+     2233.55
+    ],
+    "baseline_summary_read": [
+     41.7
+    ],
+    "write_input": [
+     180.86
+    ],
+    "initial_recalculate": [
+     61.97
+    ],
+    "cycle_copy": [
+     96.32,
+     91.71
+    ],
+    "recalculate": [
+     38.67,
+     41.4
+    ],
+    "cycle_diff_read": [
+     32.85,
+     50.81
+    ],
+    "result_summary_read": [
+     78.06
+    ],
+    "close_cleanup": [
+     8062.85
+    ]
+   }
+  },
+  "normal": {
+   "recalc_mode": "normal",
+   "read_baseline": true,
+   "total_s": 16.18,
+   "status": "valid",
+   "iterations": 2,
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "snapshot_count": 161,
+   "stage_timings": {
+    "template_copy": [
+     9.81
+    ],
+    "excel_start": [
+     3569.56
+    ],
+    "workbook_open": [
+     3449.25
+    ],
+    "baseline_summary_read": [
+     70.15
+    ],
+    "write_input": [
+     306.71
+    ],
+    "initial_recalculate": [
+     22.74
+    ],
+    "cycle_copy": [
+     102.33,
+     134.01
+    ],
+    "recalculate": [
+     3.89,
+     5.71
+    ],
+    "cycle_diff_read": [
+     51.08,
+     141.76
+    ],
+    "result_summary_read": [
+     65.38
+    ],
+    "close_cleanup": [
+     8233.02
+    ]
+   }
+  },
+  "skip_baseline": {
+   "recalc_mode": "full_rebuild",
+   "read_baseline": false,
+   "total_s": 17.69,
+   "status": "valid",
+   "iterations": 2,
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "snapshot_count": 161,
+   "stage_timings": {
+    "template_copy": [
+     6.54
+    ],
+    "excel_start": [
+     4787.94
+    ],
+    "workbook_open": [
+     3399.11
+    ],
+    "write_input": [
+     363.57
+    ],
+    "initial_recalculate": [
+     125.58
+    ],
+    "cycle_copy": [
+     246.63,
+     173.26
+    ],
+    "recalculate": [
+     109.04,
+     58.34
+    ],
+    "cycle_diff_read": [
+     131.5,
+     52.76
+    ],
+    "result_summary_read": [
+     35.45
+    ],
+    "close_cleanup": [
+     8184.06
+    ]
+   }
+  }
+ },
+ "summary_read_probe": {
+  "legacy_per_cell_s": 17.251,
+  "batch_range_s": 0.044,
+  "legacy_count": 161,
+  "batch_count": 161,
+  "identical": true,
+  "comparison": {
+   "keys_equal": true,
+   "only_in_reference": [],
+   "only_in_candidate": [],
+   "max_abs_diff": 0.0,
+   "mismatch_count": 0,
+   "mismatch_sample": []
+  }
+ },
+ "comparisons": {
+  "full_vs_full_rebuild": {
+   "keys_equal": true,
+   "only_in_reference": [],
+   "only_in_candidate": [],
+   "max_abs_diff": 0.0,
+   "mismatch_count": 0,
+   "mismatch_sample": [],
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "iterations": 2,
+   "status": "valid"
+  },
+  "normal_vs_full_rebuild": {
+   "keys_equal": true,
+   "only_in_reference": [],
+   "only_in_candidate": [],
+   "max_abs_diff": 0.0,
+   "mismatch_count": 0,
+   "mismatch_sample": [],
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "iterations": 2,
+   "status": "valid"
+  },
+  "skip_baseline_vs_full_rebuild": {
+   "keys_equal": true,
+   "only_in_reference": [],
+   "only_in_candidate": [],
+   "max_abs_diff": 0.0,
+   "mismatch_count": 0,
+   "mismatch_sample": [],
+   "final_differences": {
+    "profitability": 0.0029670738222193904,
+    "segment": 0.0
+   },
+   "iterations": 2,
+   "status": "valid"
+  },
+  "catalog_vs_excel_baseline": {
+   "keys_equal": false,
+   "only_in_reference": [
+    "1.1.对公一般贷款风险权重（考虑福费廷置换前）",
+    "1.1.对公一般贷款（时点）",
+    "1.1.对公存款（时点）",
+    "1.1人民币对公贷款",
+    "1.2.个人贷款风险权重",
+    "1.2.个人贷款（时点）",
+    "1.2.零售存款（时点）",
+    "1.2外币对公贷款",
+    "1.3.信用卡贷款风险权重",
+    "1.3.信用卡贷款（时点）",
+    "1.4.票据贴现风险权重",
+    "1.4.票据贴现（时点）",
+    "1.5.非银贷款风险权重",
+    "1.5.非银贷款（时点）",
+    "1.交易市场加权资产复合增速",
+    "1.人民币各项贷款（时点）",
+    "1.操作风险加权资产复合增速",
+    "1.银承复合增速",
+    "10年期国债收益率",
+    "2.1.1金市自营债券（人民币，时点，AC和FVOCI）",
+    "2.1.2司库债券（时点）",
+    "2.1.债券投资风险权重",
+    "2.1个人按揭贷款",
+    "2.2.结构化融资风险权重",
+    "2.2个人消费贷款",
+    "2.2结构化融资（时点）",
+    "2.3.同业资产风险权重",
+    "2.3个人经营贷款",
+    "2.3同业资产（时点，不含拆放非银）",
+    "2.4.存款准备金风险权重",
+    "2.4TPL（时点）",
+    "2.4信用卡贷款",
+    "2.5其他非生息资产（时点）",
+    "2.保函复合增速",
+    "2.外币存款（时点）",
+    "2.资管并表增量",
+    "3.1 外币市场化负债（日均）",
+    "3.1.FVTPL风险权重",
+    "3.1债券投资",
+    "3.2.其他非生息资产风险权重",
+    "3.2票据+同业资产",
+    "3.3结构化融资",
+    "3.4存款准备金",
+    "3.5应收投资款",
+    "3.6央行备付金",
+    "3.信用证复合增速",
+    "3.外币市场化负债（时点）",
+    "3.外币贷款（时点）",
+    "3.抵债资产增量",
+    "4.1.外币贷款风险权重",
+    "4.1外币债券（时点）",
+    "4.1对公活期存款",
+    "4.2.外币债券风险权重",
+    "4.2.外币同业资产（时点）",
+    "4.2对公短定期存款",
+    "4.3.1 长期股权投资（时点）",
+    "4.3.1.1 长期股权投资（日均）",
+    "4.3.2 外币FVTPL（时点）",
+    "4.3.外币同业资产风险权重",
+    "4.3对公三年期存款",
+    "4.4.外币非生息资产风险权重",
+    "4.4对公结构性存款",
+    "4.5外币对公存款",
+    "4.信用卡承诺复合增速",
+    "4.卖出等其他复合增速",
+    "5.1银承风险权重",
+    "5.1零售活期存款",
+    "5.2保函风险权重",
+    "5.2零售三年期存款",
+    "5.3信用证风险权重",
+    "5.3零售短定期存款",
+    "5.4信用卡承诺风险权重",
+    "5.4零售结构性存款",
+    "5.5个人贷款承诺风险权重",
+    "5.6对公贷款承诺风险权重",
+    "5.个人贷款承诺复合增速",
+    "6.对公贷款承诺复合增速",
+    "6.市场化负债",
+    "AC类投资收益",
+    "FVOCI类投资收益",
+    "PVBP增量（AC）",
+    "PVBP增量（FVOCI）",
+    "——个人活期存款（日均）",
+    "——对公活期存款（日均）",
+    "优先股、永续债分红",
+    "保函（规模）增速",
+    "保函（费率）",
+    "信用证（规模）增速",
+    "信用证（费率）",
+    "债券承销（规模）增速",
+    "债券承销（费率）",
+    "分红率",
+    "子公司中收增量",
+    "子公司利息净收入增量",
+    "子公司资产增量",
+    "对公存款（日均）",
+    "少数股东资本",
+    "日均",
+    "每年新投中长期贷款规模",
+    "每年福费廷置换流贷规模",
+    "财富管理（AUM规模）增速",
+    "财富管理（费率）",
+    "资本工具变动-二级",
+    "资本工具变动-其他一级",
+    "资本工具变动-核心一级",
+    "配股",
+    "金市RAROC目标变化（不含AC和FVOCI产出卖出）",
+    "银团贷款（规模）增速",
+    "银团贷款（费率）",
+    "银承（规模）增速",
+    "银承（费率）",
+    "银行卡（交易量）增速",
+    "银行卡（费率）",
+    "附：海外分行资产（时点）",
+    "零售存款（日均）"
+   ],
+   "only_in_candidate": [],
+   "max_abs_diff": 0.0,
+   "mismatch_count": 5,
+   "mismatch_sample": [
+    [
+     "指标",
+     "2026",
+     "type"
+    ],
+    [
+     "指标",
+     "2027",
+     "type"
+    ],
+    [
+     "指标",
+     "2028",
+     "type"
+    ],
+    [
+     "指标",
+     "2029",
+     "type"
+    ],
+    [
+     "指标",
+     "2030",
+     "type"
+    ]
+   ]
+  }
+ },
+ "template_sha256_after": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+ "template_unchanged": true
+}

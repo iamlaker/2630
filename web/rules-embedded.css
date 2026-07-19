@@ -1,0 +1,8 @@
+.embedded-readonly #rescan,
+.embedded-readonly #activation,
+.embedded-readonly .actions { display: none !important; }
+.embedded-readonly article input,
+.embedded-readonly article select,
+.embedded-readonly article button { pointer-events: none; opacity: .7; }
+.embedded-readonly article input,
+.embedded-readonly article select { background: #f1f4f3; }

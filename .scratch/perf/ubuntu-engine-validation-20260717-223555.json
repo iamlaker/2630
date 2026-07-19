@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-07-17T14:35:55.172766+00:00",
+  "validation_state": "engine_difference",
+  "reason": "candidate engine unavailable",
+  "sample_id": "task14-10y-treasury-2026-plus-10bp",
+  "publication_id": "0b473b8a-44d5-40e0-a957-ed151116fd44",
+  "template_fingerprint": "5c259fc6c7788d58c00fc7b498cea81058b3b0c4b8f9152babbe713fc6c7595b",
+  "reference_engine": {
+    "name": "excel_com",
+    "version": "not_run"
+  },
+  "candidate_engine": {
+    "name": "libreoffice_calc",
+    "version": "unavailable",
+    "platform": "ubuntu",
+    "production_ready": false
+  },
+  "tolerances": {
+    "input": 0.0,
+    "output": 1e-06,
+    "cycle": 0.1
+  },
+  "differences": [
+    {
+      "category": "availability",
+      "indicator": "engine",
+      "year": null,
+      "reference_value": "available",
+      "candidate_value": "unavailable",
+      "absolute_difference": "engine_unavailable",
+      "tolerance": 0,
+      "reference_engine": "excel_com",
+      "reference_version": "not_run",
+      "candidate_engine": "libreoffice_calc",
+      "candidate_version": "unavailable"
+    }
+  ],
+  "difference_count": 1,
+  "production_ready": false,
+  "production_ready_reason": "Ubuntu candidate cannot pass baseline regression until its runtime is installed and validated",
+  "candidate_diagnostics": {
+    "available": false,
+    "binary": null,
+    "error": null,
+    "production_ready": false,
+    "production_ready_reason": "baseline regression has not passed"
+  }
+}

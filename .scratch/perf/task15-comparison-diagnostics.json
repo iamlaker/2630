@@ -1,0 +1,93 @@
+{
+  "stage": "comparison_completed",
+  "scenario_count": 2,
+  "completed_scenarios": 2,
+  "engine_mode_requested": "warm_com",
+  "engine_mode": "warm_com",
+  "worker_id": "a6dfa3b8-ffe4-4184-b3b0-bdb9744fd4af",
+  "worker_ids": [
+    "a6dfa3b8-ffe4-4184-b3b0-bdb9744fd4af"
+  ],
+  "queue_wait_ms": 0.09,
+  "stage_timings": {
+    "scenario_1": {
+      "template_copy": [
+        21.02
+      ],
+      "excel_start": [
+        2173.65
+      ],
+      "workbook_open": [
+        1423.93
+      ],
+      "baseline_summary_read": [
+        26.66
+      ],
+      "write_input": [
+        19.74
+      ],
+      "initial_recalculate": [
+        30.77
+      ],
+      "cycle_copy": [
+        49.74,
+        42.24
+      ],
+      "recalculate": [
+        37.01,
+        37.71
+      ],
+      "cycle_diff_read": [
+        31.45,
+        26.87
+      ],
+      "result_summary_read": [
+        16.33
+      ],
+      "restore_state": [
+        91.61
+      ]
+    },
+    "scenario_2": {
+      "template_copy": [
+        0
+      ],
+      "excel_start": [
+        0
+      ],
+      "workbook_open": [
+        0
+      ],
+      "baseline_summary_read": [
+        14.6
+      ],
+      "write_input": [
+        19.14
+      ],
+      "initial_recalculate": [
+        40.03
+      ],
+      "cycle_copy": [
+        54.29,
+        51.03
+      ],
+      "recalculate": [
+        37.46,
+        31.69
+      ],
+      "cycle_diff_read": [
+        25.26,
+        19.79
+      ],
+      "result_summary_read": [
+        19.42
+      ],
+      "restore_state": [
+        81.57
+      ]
+    }
+  },
+  "fallback_reason": null,
+  "cancel_status": "not_requested",
+  "finished_at": "2026-07-17T23:37:17.084123+08:00"
+}

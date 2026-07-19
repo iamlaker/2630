@@ -1,0 +1,42 @@
+{
+  "duration_s": 5.376,
+  "stage_timings": {
+    "template_copy": [
+      13.57
+    ],
+    "excel_start": [
+      2535.56
+    ],
+    "workbook_open": [
+      1957.63
+    ],
+    "baseline_summary_read": [
+      31.39
+    ],
+    "write_input": [
+      132.3
+    ],
+    "initial_recalculate": [
+      62.33
+    ],
+    "cycle_copy": [
+      81.09,
+      61.39
+    ],
+    "recalculate": [
+      44.65,
+      40.21
+    ],
+    "cycle_diff_read": [
+      42.65,
+      30.17
+    ],
+    "result_summary_read": [
+      20.41
+    ],
+    "restore_state": [
+      252.99
+    ]
+  },
+  "worker_id": "0223ae37-1968-4c13-aec4-02adc55ae2b9"
+}

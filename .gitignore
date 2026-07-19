@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+.workbench/*.sqlite3*
+.workbench-server*.log
+~$*

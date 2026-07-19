@@ -1,0 +1,20 @@
+{
+  "source": ".workbench\\rules.sqlite3",
+  "backup": {
+    "path": ".workbench\\rules.sqlite3.backup-20260717-085714",
+    "sha256": "f4909caa707372f1e61d56c5721b5fda2ca19b00ef24f55cedc4b7ede4ca19e5",
+    "size": 3996299264
+  },
+  "target": ".workbench\\rules.sqlite3.migrating-20260717-085714",
+  "migration": {
+    "verified": true,
+    "source_versions": 102,
+    "target_versions": 102,
+    "source_audits": 184,
+    "target_audits": 184,
+    "snapshots": 82,
+    "legacy_map": 102
+  },
+  "rollback": ".workbench\\rules.sqlite3.backup-20260717-085714",
+  "legacy_original": ".workbench\\rules.sqlite3.legacy-20260717-085714"
+}

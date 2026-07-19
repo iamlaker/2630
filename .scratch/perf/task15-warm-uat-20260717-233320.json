@@ -1,0 +1,1635 @@
+{
+  "created_at": "2026-07-17T15:33:20.460852+00:00",
+  "base_url": "http://127.0.0.1:8765",
+  "template_fingerprint": "a27df7cb03878ea11779e82d1c7eca3b45abf227e6bddd6d269d77b7d62fbdee",
+  "publication_id": "aa4f9fd2-c399-4141-882c-cb43fa5a9708",
+  "browser_uat": {
+    "forward_scenario_name": "Task15-UAT-Forward",
+    "observed": true
+  },
+  "api_uat": [
+    {
+      "kind": "forward",
+      "task_id": "6453e83f-6b1a-4cb2-a370-609ce831cba7",
+      "task_status": "succeeded",
+      "wall_s": 0.547,
+      "search_count": null,
+      "requested_engine_mode": null,
+      "actual_engine_mode": "warm_com",
+      "worker_id": "dfdca087-4d2d-4d22-adbb-aad02c89ee70",
+      "queue_wait_ms": 0.1,
+      "stage_timings": {
+        "template_copy": [
+          0
+        ],
+        "excel_start": [
+          0
+        ],
+        "workbook_open": [
+          0
+        ],
+        "baseline_summary_read": [
+          20.12
+        ],
+        "write_input": [
+          16.76
+        ],
+        "initial_recalculate": [
+          28.19
+        ],
+        "cycle_copy": [
+          52.77,
+          42.11
+        ],
+        "recalculate": [
+          36.95,
+          42.99
+        ],
+        "cycle_diff_read": [
+          22.73,
+          50.76
+        ],
+        "result_summary_read": [
+          14.27
+        ],
+        "restore_state": [
+          74.67
+        ]
+      },
+      "fallback_reason": null,
+      "validation_state": "valid",
+      "cancellation_state": "not_requested",
+      "feasible": null,
+      "error": null
+    },
+    {
+      "kind": "reverse_v1",
+      "task_id": "2343516f-7123-4b44-b5f0-ae54158bd591",
+      "task_status": "succeeded",
+      "wall_s": 1.18,
+      "search_count": 3,
+      "requested_engine_mode": null,
+      "actual_engine_mode": "warm_com",
+      "worker_id": "dfdca087-4d2d-4d22-adbb-aad02c89ee70",
+      "queue_wait_ms": 0.07,
+      "stage_timings": {
+        "template_copy": [
+          0
+        ],
+        "excel_start": [
+          0
+        ],
+        "workbook_open": [
+          0
+        ],
+        "baseline_summary_read": [
+          11.9
+        ],
+        "write_input": [
+          18.61
+        ],
+        "initial_recalculate": [
+          34.6
+        ],
+        "cycle_copy": [
+          43.05,
+          55.17
+        ],
+        "recalculate": [
+          37.44,
+          35.45
+        ],
+        "cycle_diff_read": [
+          23.3,
+          23.52
+        ],
+        "result_summary_read": [
+          12.19
+        ],
+        "restore_state": [
+          73.07
+        ]
+      },
+      "fallback_reason": null,
+      "validation_state": "valid",
+      "cancellation_state": "not_requested",
+      "feasible": true,
+      "error": null
+    },
+    {
+      "kind": "reverse_v2",
+      "task_id": "6e22871e-81c8-4bbd-b918-19ab7e1f2d27",
+      "task_status": "succeeded",
+      "wall_s": 0.712,
+      "search_count": 1,
+      "requested_engine_mode": null,
+      "actual_engine_mode": "warm_com",
+      "worker_id": "dfdca087-4d2d-4d22-adbb-aad02c89ee70",
+      "queue_wait_ms": 0.08,
+      "stage_timings": {
+        "template_copy": [
+          0
+        ],
+        "excel_start": [
+          0
+        ],
+        "workbook_open": [
+          0
+        ],
+        "baseline_summary_read": [
+          17.52
+        ],
+        "write_input": [
+          78.76,
+          81.68
+        ],
+        "initial_recalculate": [
+          32.22
+        ],
+        "cycle_copy": [
+          55.91
+        ],
+        "recalculate": [
+          35.98
+        ],
+        "cycle_diff_read": [
+          26.51
+        ],
+        "result_summary_read": [
+          14.45
+        ],
+        "restore_state": [
+          303.96
+        ]
+      },
+      "fallback_reason": null,
+      "validation_state": "valid",
+      "cancellation_state": "not_requested",
+      "feasible": true,
+      "error": null
+    },
+    {
+      "kind": "comparison",
+      "task_id": "84e41809-93c5-4956-82db-e463bed5cfc0",
+      "task_status": "succeeded",
+      "wall_s": 0.811,
+      "search_count": null,
+      "requested_engine_mode": null,
+      "actual_engine_mode": "warm_com",
+      "worker_id": null,
+      "queue_wait_ms": null,
+      "stage_timings": {},
+      "fallback_reason": null,
+      "validation_state": "valid",
+      "cancellation_state": "not_requested",
+      "feasible": null,
+      "error": null
+    }
+  ],
+  "exports": {
+    "scenario": {
+      "file_id": "d81c46f9-c180-4d08-8a68-20809c2c15df",
+      "file_name": "scenario-d81c46f9-c180-4d08-8a68-20809c2c15df.xlsx",
+      "path": "D:\\workspace\\2026-2030\\.workbench\\templates\\exports\\scenario-d81c46f9-c180-4d08-8a68-20809c2c15df.xlsx",
+      "download_url": "/api/exports/d81c46f9-c180-4d08-8a68-20809c2c15df"
+    },
+    "reverse": {
+      "file_id": "6067d76a-0e60-43f6-95af-bc20f938c83f",
+      "file_name": "reverse-6067d76a-0e60-43f6-95af-bc20f938c83f.xlsx",
+      "path": "D:\\workspace\\2026-2030\\.workbench\\templates\\exports\\reverse-6067d76a-0e60-43f6-95af-bc20f938c83f.xlsx",
+      "download_url": "/api/exports/6067d76a-0e60-43f6-95af-bc20f938c83f"
+    },
+    "comparison": {
+      "file_id": "40f55e20-4b32-4a16-bc08-ccb4fc9b89a3",
+      "file_name": "comparison-40f55e20-4b32-4a16-bc08-ccb4fc9b89a3.xlsx",
+      "path": "D:\\workspace\\2026-2030\\.workbench\\templates\\exports\\comparison-40f55e20-4b32-4a16-bc08-ccb4fc9b89a3.xlsx",
+      "download_url": "/api/exports/40f55e20-4b32-4a16-bc08-ccb4fc9b89a3"
+    }
+  },
+  "cancellation": {
+    "kind": "reverse_v1_cancel",
+    "task_id": "809c2da6-d62a-4f06-8855-302eab04817a",
+    "task_status": "cancel_requested",
+    "wall_s": 0.354,
+    "search_count": null,
+    "requested_engine_mode": null,
+    "actual_engine_mode": null,
+    "worker_id": null,
+    "queue_wait_ms": null,
+    "stage_timings": {},
+    "fallback_reason": null,
+    "validation_state": null,
+    "cancellation_state": "requested",
+    "feasible": null,
+    "error": null
+  },
+  "mixed_30": {
+    "count": 30,
+    "distribution": {
+      "comparison": 6,
+      "forward": 12,
+      "reverse_v1": 6,
+      "reverse_v2": 6
+    },
+    "p50_s": 0.738,
+    "p95_s": 1.447,
+    "p99_s": 3.865,
+    "total_forward_calls": 48,
+    "all_succeeded": true,
+    "runs": [
+      {
+        "kind": "forward",
+        "task_id": "a3a4903f-6949-4d35-87e5-cb4132751dcd",
+        "task_status": "succeeded",
+        "wall_s": 0.565,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "dfdca087-4d2d-4d22-adbb-aad02c89ee70",
+        "queue_wait_ms": 0.02,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            28.13
+          ],
+          "write_input": [
+            80.73
+          ],
+          "initial_recalculate": [
+            28.71
+          ],
+          "cycle_copy": [
+            51.26,
+            44.34
+          ],
+          "recalculate": [
+            46.03,
+            29.94
+          ],
+          "cycle_diff_read": [
+            20.82,
+            17.99
+          ],
+          "result_summary_read": [
+            14.52
+          ],
+          "restore_state": [
+            78.84
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "7f5f32a6-9d10-4f53-8c79-886e3bf3cc8a",
+        "task_status": "succeeded",
+        "wall_s": 3.865,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.02,
+        "stage_timings": {
+          "template_copy": [
+            18.59
+          ],
+          "excel_start": [
+            1794.1
+          ],
+          "workbook_open": [
+            1568.46
+          ],
+          "baseline_summary_read": [
+            24.64
+          ],
+          "write_input": [
+            24.67
+          ],
+          "initial_recalculate": [
+            37.39
+          ],
+          "cycle_copy": [
+            53.81,
+            56.29
+          ],
+          "recalculate": [
+            38.69,
+            30.34
+          ],
+          "cycle_diff_read": [
+            31.6,
+            32.6
+          ],
+          "result_summary_read": [
+            15.86
+          ],
+          "restore_state": [
+            72.63
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "ef48c3e2-9508-4b99-a7ee-664bafbf32b9",
+        "task_status": "succeeded",
+        "wall_s": 0.337,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            21.6
+          ],
+          "write_input": [
+            20.54
+          ],
+          "initial_recalculate": [
+            34.48
+          ],
+          "cycle_copy": [
+            44.7
+          ],
+          "recalculate": [
+            30.98
+          ],
+          "cycle_diff_read": [
+            18.0
+          ],
+          "result_summary_read": [
+            10.75
+          ],
+          "restore_state": [
+            83.86
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "e85505b4-d8bd-43b4-9e48-53b745b3b61f",
+        "task_status": "succeeded",
+        "wall_s": 0.329,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.05,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            22.34
+          ],
+          "write_input": [
+            15.6
+          ],
+          "initial_recalculate": [
+            35.79
+          ],
+          "cycle_copy": [
+            49.18
+          ],
+          "recalculate": [
+            30.02
+          ],
+          "cycle_diff_read": [
+            20.14
+          ],
+          "result_summary_read": [
+            13.35
+          ],
+          "restore_state": [
+            72.69
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "0a4ea352-f2f4-465d-af78-5adf62d3193d",
+        "task_status": "succeeded",
+        "wall_s": 0.444,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.06,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            23.21
+          ],
+          "write_input": [
+            14.59
+          ],
+          "initial_recalculate": [
+            25.32
+          ],
+          "cycle_copy": [
+            50.21,
+            45.06
+          ],
+          "recalculate": [
+            33.83,
+            34.71
+          ],
+          "cycle_diff_read": [
+            13.53,
+            17.27
+          ],
+          "result_summary_read": [
+            14.1
+          ],
+          "restore_state": [
+            87.62
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "549b68b6-38a7-4c8a-b32a-068bc02a979f",
+        "task_status": "succeeded",
+        "wall_s": 0.462,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.06,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            27.76
+          ],
+          "write_input": [
+            18.92
+          ],
+          "initial_recalculate": [
+            36.72
+          ],
+          "cycle_copy": [
+            44.69,
+            42.69
+          ],
+          "recalculate": [
+            28.17,
+            35.91
+          ],
+          "cycle_diff_read": [
+            26.26,
+            22.94
+          ],
+          "result_summary_read": [
+            17.54
+          ],
+          "restore_state": [
+            78.41
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "8882e817-da7a-49b9-bca6-8e0ca297936c",
+        "task_status": "succeeded",
+        "wall_s": 0.438,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            23.28
+          ],
+          "write_input": [
+            18.36
+          ],
+          "initial_recalculate": [
+            33.79
+          ],
+          "cycle_copy": [
+            53.0,
+            58.94
+          ],
+          "recalculate": [
+            31.43,
+            32.06
+          ],
+          "cycle_diff_read": [
+            37.56,
+            25.22
+          ],
+          "result_summary_read": [
+            11.17
+          ],
+          "restore_state": [
+            66.89
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "8b279a5c-48f2-4b60-95d2-82e75ab05139",
+        "task_status": "succeeded",
+        "wall_s": 0.389,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            23.32
+          ],
+          "write_input": [
+            14.17
+          ],
+          "initial_recalculate": [
+            36.41
+          ],
+          "cycle_copy": [
+            41.28,
+            40.8
+          ],
+          "recalculate": [
+            36.13,
+            32.69
+          ],
+          "cycle_diff_read": [
+            22.39,
+            19.45
+          ],
+          "result_summary_read": [
+            8.14
+          ],
+          "restore_state": [
+            71.69
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "674c8c93-9b4e-4a38-8bab-111bb28a7a0c",
+        "task_status": "succeeded",
+        "wall_s": 0.478,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            16.2
+          ],
+          "write_input": [
+            16.69
+          ],
+          "initial_recalculate": [
+            28.17
+          ],
+          "cycle_copy": [
+            47.81,
+            51.51
+          ],
+          "recalculate": [
+            40.1,
+            48.79
+          ],
+          "cycle_diff_read": [
+            18.26,
+            50.2
+          ],
+          "result_summary_read": [
+            17.15
+          ],
+          "restore_state": [
+            81.42
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "4adeb38f-2e01-4570-b138-d4d86bdaf88b",
+        "task_status": "succeeded",
+        "wall_s": 0.469,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            29.63
+          ],
+          "write_input": [
+            21.9
+          ],
+          "initial_recalculate": [
+            39.53
+          ],
+          "cycle_copy": [
+            51.71,
+            51.19
+          ],
+          "recalculate": [
+            39.45,
+            35.49
+          ],
+          "cycle_diff_read": [
+            17.36,
+            20.92
+          ],
+          "result_summary_read": [
+            11.42
+          ],
+          "restore_state": [
+            74.39
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "5319d3f0-57c9-4e63-8783-f097259ecd98",
+        "task_status": "succeeded",
+        "wall_s": 0.493,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            18.11
+          ],
+          "write_input": [
+            16.32
+          ],
+          "initial_recalculate": [
+            34.09
+          ],
+          "cycle_copy": [
+            45.62,
+            40.94
+          ],
+          "recalculate": [
+            33.74,
+            31.34
+          ],
+          "cycle_diff_read": [
+            18.97,
+            24.18
+          ],
+          "result_summary_read": [
+            30.94
+          ],
+          "restore_state": [
+            84.46
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "forward",
+        "task_id": "8acb6cd1-e566-4a3e-913b-47bfa875e24d",
+        "task_status": "succeeded",
+        "wall_s": 0.432,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            18.76
+          ],
+          "write_input": [
+            22.98
+          ],
+          "initial_recalculate": [
+            32.67
+          ],
+          "cycle_copy": [
+            69.67,
+            45.05
+          ],
+          "recalculate": [
+            36.22,
+            28.79
+          ],
+          "cycle_diff_read": [
+            29.49,
+            21.74
+          ],
+          "result_summary_read": [
+            13.6
+          ],
+          "restore_state": [
+            80.08
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "a953a1c5-5f37-4434-8d76-32ebe7a2bf8a",
+        "task_status": "succeeded",
+        "wall_s": 1.29,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            16.89
+          ],
+          "write_input": [
+            25.34
+          ],
+          "initial_recalculate": [
+            31.5
+          ],
+          "cycle_copy": [
+            61.02,
+            50.28
+          ],
+          "recalculate": [
+            40.73,
+            33.59
+          ],
+          "cycle_diff_read": [
+            23.03,
+            27.87
+          ],
+          "result_summary_read": [
+            26.76
+          ],
+          "restore_state": [
+            73.19
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "cde273d2-7578-4e93-958d-767d9fff9835",
+        "task_status": "succeeded",
+        "wall_s": 1.324,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.1,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            26.35
+          ],
+          "write_input": [
+            35.64
+          ],
+          "initial_recalculate": [
+            29.97
+          ],
+          "cycle_copy": [
+            58.14,
+            43.62
+          ],
+          "recalculate": [
+            35.57,
+            29.25
+          ],
+          "cycle_diff_read": [
+            19.02,
+            17.38
+          ],
+          "result_summary_read": [
+            19.26
+          ],
+          "restore_state": [
+            76.16
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "b08abe94-73eb-4954-953c-881d9fb9f131",
+        "task_status": "succeeded",
+        "wall_s": 1.388,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.11,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            25.36
+          ],
+          "write_input": [
+            21.58
+          ],
+          "initial_recalculate": [
+            38.35
+          ],
+          "cycle_copy": [
+            50.06,
+            48.73
+          ],
+          "recalculate": [
+            35.03,
+            40.47
+          ],
+          "cycle_diff_read": [
+            26.59,
+            27.06
+          ],
+          "result_summary_read": [
+            17.6
+          ],
+          "restore_state": [
+            89.03
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "84193ccb-9d4b-4351-b849-ba24ed2bc2ad",
+        "task_status": "succeeded",
+        "wall_s": 1.37,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            21.0
+          ],
+          "write_input": [
+            19.65
+          ],
+          "initial_recalculate": [
+            46.04
+          ],
+          "cycle_copy": [
+            65.48,
+            49.75
+          ],
+          "recalculate": [
+            44.41,
+            42.3
+          ],
+          "cycle_diff_read": [
+            27.36,
+            30.65
+          ],
+          "result_summary_read": [
+            22.93
+          ],
+          "restore_state": [
+            89.91
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "8a07c6c9-2344-423a-840a-4426498b12ef",
+        "task_status": "succeeded",
+        "wall_s": 1.447,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.08,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            18.53
+          ],
+          "write_input": [
+            20.23
+          ],
+          "initial_recalculate": [
+            35.17
+          ],
+          "cycle_copy": [
+            61.78,
+            54.34
+          ],
+          "recalculate": [
+            30.74,
+            32.79
+          ],
+          "cycle_diff_read": [
+            56.41,
+            32.82
+          ],
+          "result_summary_read": [
+            28.89
+          ],
+          "restore_state": [
+            77.66
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v1",
+        "task_id": "236fe266-316b-4acd-8b2e-aedc23185d3b",
+        "task_status": "succeeded",
+        "wall_s": 1.389,
+        "search_count": 3,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            19.29
+          ],
+          "write_input": [
+            29.17
+          ],
+          "initial_recalculate": [
+            37.91
+          ],
+          "cycle_copy": [
+            51.04,
+            45.45
+          ],
+          "recalculate": [
+            30.09,
+            28.26
+          ],
+          "cycle_diff_read": [
+            28.87,
+            19.65
+          ],
+          "result_summary_read": [
+            17.14
+          ],
+          "restore_state": [
+            83.36
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "8cec417b-0e41-4bae-8c32-0d67af967783",
+        "task_status": "succeeded",
+        "wall_s": 0.78,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.1,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            18.63
+          ],
+          "write_input": [
+            122.13,
+            91.27
+          ],
+          "initial_recalculate": [
+            32.59
+          ],
+          "cycle_copy": [
+            59.21
+          ],
+          "recalculate": [
+            34.18
+          ],
+          "cycle_diff_read": [
+            18.31
+          ],
+          "result_summary_read": [
+            11.73
+          ],
+          "restore_state": [
+            255.29
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "519d9bc4-ac54-47b9-aee4-3e4c6a96a36a",
+        "task_status": "succeeded",
+        "wall_s": 0.609,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.06,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            23.73
+          ],
+          "write_input": [
+            75.27,
+            90.7
+          ],
+          "initial_recalculate": [
+            26.52
+          ],
+          "cycle_copy": [
+            46.35
+          ],
+          "recalculate": [
+            28.36
+          ],
+          "cycle_diff_read": [
+            23.6
+          ],
+          "result_summary_read": [
+            17.64
+          ],
+          "restore_state": [
+            246.38
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "095db241-17ae-41ad-a15a-b054d18f213f",
+        "task_status": "succeeded",
+        "wall_s": 0.674,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            25.13
+          ],
+          "write_input": [
+            86.82,
+            90.01
+          ],
+          "initial_recalculate": [
+            30.74
+          ],
+          "cycle_copy": [
+            69.48
+          ],
+          "recalculate": [
+            28.28
+          ],
+          "cycle_diff_read": [
+            22.19
+          ],
+          "result_summary_read": [
+            14.1
+          ],
+          "restore_state": [
+            257.79
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "46853727-5eaf-487d-baff-56bf86b2da1b",
+        "task_status": "succeeded",
+        "wall_s": 0.676,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.18,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            12.66
+          ],
+          "write_input": [
+            98.83,
+            74.08
+          ],
+          "initial_recalculate": [
+            34.05
+          ],
+          "cycle_copy": [
+            52.44
+          ],
+          "recalculate": [
+            45.27
+          ],
+          "cycle_diff_read": [
+            24.59
+          ],
+          "result_summary_read": [
+            14.17
+          ],
+          "restore_state": [
+            252.05
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "2deaeb13-481a-4b13-a5a3-442cfd199616",
+        "task_status": "succeeded",
+        "wall_s": 0.777,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.07,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            26.66
+          ],
+          "write_input": [
+            108.0,
+            95.88
+          ],
+          "initial_recalculate": [
+            34.17
+          ],
+          "cycle_copy": [
+            55.42
+          ],
+          "recalculate": [
+            32.86
+          ],
+          "cycle_diff_read": [
+            21.1
+          ],
+          "result_summary_read": [
+            21.51
+          ],
+          "restore_state": [
+            314.16
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "reverse_v2",
+        "task_id": "f76c9fa2-9022-408f-9632-6ab5fb62938e",
+        "task_status": "succeeded",
+        "wall_s": 0.699,
+        "search_count": 1,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": "0d0405a1-f10e-4e7b-8343-c8813a3e1575",
+        "queue_wait_ms": 0.09,
+        "stage_timings": {
+          "template_copy": [
+            0
+          ],
+          "excel_start": [
+            0
+          ],
+          "workbook_open": [
+            0
+          ],
+          "baseline_summary_read": [
+            19.87
+          ],
+          "write_input": [
+            94.17,
+            98.08
+          ],
+          "initial_recalculate": [
+            30.46
+          ],
+          "cycle_copy": [
+            52.79
+          ],
+          "recalculate": [
+            41.89
+          ],
+          "cycle_diff_read": [
+            23.05
+          ],
+          "result_summary_read": [
+            12.31
+          ],
+          "restore_state": [
+            274.52
+          ]
+        },
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": true,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "392317f9-a0e2-4651-8b7c-2ff0bca28474",
+        "task_status": "succeeded",
+        "wall_s": 0.908,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "ed26564e-57a0-4e54-9c02-c484bde6d250",
+        "task_status": "succeeded",
+        "wall_s": 1.036,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "8783d2ac-eee7-4fa1-bc93-48cdbd65a5e2",
+        "task_status": "succeeded",
+        "wall_s": 0.922,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "b750d9f9-e222-44b5-ae3c-13bb3943cbbf",
+        "task_status": "succeeded",
+        "wall_s": 0.977,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "1e1ab401-0644-44af-bece-6db56f4d8bfc",
+        "task_status": "succeeded",
+        "wall_s": 0.801,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      },
+      {
+        "kind": "comparison",
+        "task_id": "7f53bd1f-237c-4c8b-b0a1-c7c32a677c62",
+        "task_status": "succeeded",
+        "wall_s": 0.924,
+        "search_count": null,
+        "requested_engine_mode": null,
+        "actual_engine_mode": "warm_com",
+        "worker_id": null,
+        "queue_wait_ms": null,
+        "stage_timings": {},
+        "fallback_reason": null,
+        "validation_state": "valid",
+        "cancellation_state": "not_requested",
+        "feasible": null,
+        "error": null
+      }
+    ]
+  },
+  "excel_pids_before": [
+    10036,
+    50872,
+    52656
+  ],
+  "excel_pids_after": [
+    10036,
+    32540,
+    52656
+  ],
+  "new_orphan_excel_pids": [
+    32540
+  ]
+}
