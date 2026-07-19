@@ -626,6 +626,18 @@ summary {
   font-size: 11px;
   padding-top: 4px;
 }
+.comparison-canvas { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 14px; }
+.comparison-canvas .empty { height: auto; padding: 28px 0; }
+.comparison-summary { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12px; }
+.comparison-summary select { font-size: 12px; padding: 3px 6px; }
+.comparison-section h3 { margin: 0 0 6px; font-size: 13px; }
+.comparison-section h3 small { margin-left: 6px; font-weight: 400; color: var(--muted); }
+.comparison-section .result-scroll { overflow: auto; }
+.comparison-table .section-head td { cursor: default; }
+.comparison-table td small.cmp-delta { display: block; font-size: 9px; }
+.comparison-table td.comparison-missing { color: var(--muted); }
+.cmp-delta.negative { color: #a15f5f; }
+.cmp-delta.positive { color: #47765f; }
 .scenario-actions button {
   padding: 3px 8px;
   font-size: 11px;

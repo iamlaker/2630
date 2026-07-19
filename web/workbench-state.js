@@ -14,6 +14,7 @@
       singleVariable: null,
       page: 0,
       cardLayout: "horizontal",
+      centerView: "cards",
       openGroups: {},
       resultSections: {},
       outputSelection: [],

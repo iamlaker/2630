@@ -339,6 +339,7 @@ class WorkbenchService:
                 "template_version_id": record["template_version_id"], "template_fingerprint": record["template_fingerprint"],
                 "rule_publication_id": record["rule_publication_id"], "validation_state": validation_state,
                 "read_only": view["read_only"], "source": source, "status": status, "failure_reason": reason,
+                "input_adjustments": record.get("input_adjustments") or {},
                 "calculation_result_snapshot": snapshot, "calculation_details": calculation_details,
             })
             if progress:

@@ -40,7 +40,7 @@
         </aside>
         <div class="pane-resizer" data-resize="left" title="拖动调整；双击恢复"></div>
         <section id="centerPane" class="pane center-pane">
-          <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div></div>
+          <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><div id="centerViewToggle" class="layout-toggle"><button data-center-view="cards" class="active">卡片视图</button><button data-center-view="comparison">对比视图</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div></div>
           <div id="constraintBuilder" class="constraint-builder" hidden>
             <strong>约束构建器</strong>
             <input id="cbSearch" placeholder="搜索指标" />
@@ -52,6 +52,7 @@
             <select id="cbHard" title="软硬"><option value="true">硬约束</option><option value="false">软目标</option></select>
             <button id="cbAdd" class="primary">添加约束</button>
           </div>
+          <div id="comparisonCanvas" class="comparison-canvas" hidden></div>
           <div id="editorEmpty" class="empty">从左侧选择指标加入卡片</div>
           <div id="cardGrid" class="card-grid"></div>
           <div id="editor" class="editor" hidden>

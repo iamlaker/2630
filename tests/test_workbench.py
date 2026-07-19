@@ -182,6 +182,39 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         # 样式
         self.assertIn(".constraint-builder", css)
 
+    def test_forward_comparison_center_canvas_ui_hooks(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        state_js = (self.web / "workbench-state.js").read_text(encoding="utf-8")
+        # 中栏"卡片视图/对比视图"切换：forward 模块专属，视图状态随草稿持久化，其余模块隐藏
+        self.assertIn('id="centerViewToggle"', html)
+        self.assertIn('data-center-view="cards"', html)
+        self.assertIn('data-center-view="comparison"', html)
+        self.assertIn("centerView", state_js)
+        self.assertIn('$("centerViewToggle").hidden = module !== "forward"', app)
+        self.assertIn("function comparisonViewActive(", app)
+        self.assertIn("function setCenterView(", app)
+        # 对比完成后自动切到对比视图
+        self.assertIn('setCenterView("comparison")', app)
+        # 中栏对比画布容器位于 center toolbar 与编辑器之间，承载两个渲染区
+        self.assertIn('id="comparisonCanvas"', html)
+        self.assertLess(html.index('id="comparisonCanvas"'), html.index('id="editor"'))
+        self.assertIn("function renderComparisonCanvas(", app)
+        self.assertIn("function comparisonResultTable(", app)
+        self.assertIn("function comparisonInputDiffTable(", app)
+        self.assertIn("指标结果对比", app)
+        self.assertIn("输入参数差异", app)
+        self.assertIn("输入参数完全一致", app)
+        # Δ 标注沿用 1e-9 相对阈值与负红正绿着色，格式化复用 formatResultValue/deltaText
+        self.assertIn("function comparisonValuesDiffer(", app)
+        self.assertIn("Math.abs(x - y) > 1e-9 * Math.max(1, Math.abs(x), Math.abs(y))", app)
+        self.assertIn("cmp-delta", app)
+        self.assertIn("deltaText(delta, unit, precision)", app)
+        self.assertIn(".cmp-delta.negative", css)
+        self.assertIn(".cmp-delta.positive", css)
+        self.assertIn(".comparison-canvas", css)
+
 
 def rule(name="贷款利率", *, status="confirmed", linkage="independent", pending=False, allowed=(0, 10)):
     return {
@@ -980,6 +1013,16 @@ class ComparisonTests(ScenarioTests):
         self.assertEqual(result["summary"], {"total": 2, "valid": 2, "failed": 0})
         self.assertEqual(result["core_results"][0]["scenarios"][1]["differences"]["2026"], 10)
         self.assertEqual(result["details"][0]["scenarios"][1]["differences"]["2030"], 10)
+
+    def test_comparison_rows_carry_input_adjustments_for_center_canvas(self):
+        service = self.service(engine=InMemoryWorkbookEngine(fails=True))
+        baseline = self.save(service, "基准", value=100)
+        alternative = self.save(service, "方案", value=110)
+        result = self.compare(service, [baseline, alternative])
+        self.assertEqual(
+            [row["input_adjustments"] for row in result["scenarios"]],
+            [{"价格假设|贷款利率|107": {"2026": 4.2}}] * 2,
+        )
 
     def test_missing_or_invalid_snapshot_triggers_recalculation(self):
         service = self.service()

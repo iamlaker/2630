@@ -11,6 +11,7 @@ const state = {
   comparisonSelection: {},
   comparisonBaseline: null,
   comparison: null,
+  comparisonViewScenario: null,
   reverseResult: null,
   reverseConstraints: persisted.drafts[persisted.activeModule]?.constraints || [],
   reverseVariables: persisted.drafts[persisted.activeModule]?.variables || [],
@@ -504,6 +505,7 @@ async function poll() {
     if (kind === "comparison") {
       state.comparison = data;
       renderComparison(data);
+      if (state.module === "forward") setCenterView("comparison");
     } else if (kind === "reverse") {
       state.reverseResult = data;
       state.data.scenario_draft = data.scenario_draft;
@@ -1148,6 +1150,18 @@ function currentDraft(module = state.module) {
   return state.persisted.drafts[module];
 }
 
+// ticket 34 中栏视图：forward 模块支持 卡片视图/对比视图，视图标志随草稿持久化
+function comparisonViewActive() {
+  return state.module === "forward" && currentDraft().centerView === "comparison";
+}
+function setCenterView(view) {
+  if (state.module !== "forward") view = "cards";
+  currentDraft().centerView = view === "comparison" ? "comparison" : "cards";
+  persistWorkbench();
+  renderCardPages();
+  renderCardGrid();
+}
+
 function persistWorkbench() {
   state.persisted.activeModule = state.module;
   state.persisted.favorites = state.favorites;
@@ -1195,6 +1209,7 @@ function switchModule(module) {
   $("forwardMode").hidden = module !== "forward";
   $("calculateTop").hidden = rules;
   $("layoutToggle").hidden = module !== "forward";
+  $("centerViewToggle").hidden = module !== "forward";
   $("linkage").hidden = module !== "forward";
   $("leftTitle").textContent = module === "forward" ? "输入参数" : module === "single" ? "变量与约束" : module === "multi" ? "多输入变量与约束" : "规则导航";
   $("centerTitle").textContent = module === "forward" ? "年度参数卡片" : module === "single" ? "单变量求解画布" : module === "multi" ? "多输入求解画布" : "规则维护";
@@ -1484,6 +1499,18 @@ function bindCardConfigEvents() {
   bindConstraintGroupEvents();
 }
 function renderCardGrid() {
+  const comparisonMode = comparisonViewActive();
+  document.querySelectorAll("[data-center-view]").forEach((button) => button.classList.toggle("active", button.dataset.centerView === (comparisonMode ? "comparison" : "cards")));
+  $("comparisonCanvas").hidden = !comparisonMode;
+  if (state.module === "forward") $("centerTitle").textContent = comparisonMode ? "对比视图" : "年度参数卡片";
+  if (comparisonMode) {
+    $("editor").hidden = true;
+    $("editorEmpty").hidden = true;
+    $("cardGrid").hidden = true;
+    $("cardPages").innerHTML = "";
+    renderComparisonCanvas();
+    return;
+  }
   if (isReadOnly()) {
     $("cardGrid").hidden = true;
     return;
@@ -1690,6 +1717,7 @@ function initializeUnifiedWorkbench() {
     renderCardGrid();
     persistWorkbench();
   }));
+  document.querySelectorAll("[data-center-view]").forEach((button) => (button.onclick = () => setCenterView(button.dataset.centerView)));
   document.querySelectorAll("[data-mode]").forEach((button) => (button.onclick = async () => {
     if (button.dataset.mode === "auto" && state.warmHealthy !== true) {
       await recheckWorkerHealth();
@@ -1918,6 +1946,91 @@ function renderComparisonDetails() {
           .join("")}</div>`,
     )
     .join("");
+}
+
+// ticket 34 中栏对比画布：摘要条 + 区1 指标结果对比表 + 区2 输入参数差异表
+function comparisonParticipants() {
+  const scenarios = state.comparison?.scenarios || [];
+  const baseline = scenarios.find((sc) => sc.scenario_id === state.comparison.baseline_scenario_id) || scenarios[0] || null;
+  return { baseline, others: scenarios.filter((sc) => sc !== baseline) };
+}
+function comparisonSnapshot(scenario) {
+  return scenario?.status === "succeeded" && scenario.calculation_result_snapshot ? scenario.calculation_result_snapshot : null;
+}
+// 差异判定沿用 resultRowChanged 的 1e-9 相对误差思路
+function comparisonValuesDiffer(a, b) {
+  const x = Number(a), y = Number(b);
+  return Number.isFinite(x) && Number.isFinite(y) && Math.abs(x - y) > 1e-9 * Math.max(1, Math.abs(x), Math.abs(y));
+}
+function renderComparisonCanvas() {
+  const canvas = $("comparisonCanvas");
+  if (!state.comparison) {
+    canvas.innerHTML = '<div class="empty">尚无对比结果：在右栏"命名场景"勾选场景并点击"开始对比"</div>';
+    return;
+  }
+  const { baseline, others } = comparisonParticipants();
+  const current = others.find((sc) => sc.scenario_id === state.comparisonViewScenario) || others[0] || null;
+  state.comparisonViewScenario = current?.scenario_id || null;
+  const summary = state.comparison.summary || {};
+  canvas.innerHTML =
+    `<div class="comparison-summary"><span>基准场景 <strong>${baseline?.name || "—"}</strong></span><span>对比场景 ${
+      others.length > 1
+        ? `<select id="comparisonViewScenario">${others.map((sc) => `<option value="${sc.scenario_id}" ${sc === current ? "selected" : ""}>${sc.name}</option>`).join("")}</select>`
+        : `<strong>${current?.name || "—"}</strong>`
+    }</span><span class="badge ${summary.failed ? "failed" : "valid"}">${summary.valid ?? "?"}/${summary.total ?? "?"} 场景有效</span></div>` +
+    `<section class="comparison-section"><h3>指标结果对比<small>基准值 → 对比值，差异标注 Δ（负红正绿）</small></h3>${comparisonResultTable(baseline, current)}</section>` +
+    `<section class="comparison-section"><h3>输入参数差异<small>仅列有差异的输入项</small></h3>${comparisonInputDiffTable(baseline, current)}</section>`;
+  const selector = $("comparisonViewScenario");
+  if (selector) selector.oninput = () => {
+    state.comparisonViewScenario = selector.value;
+    renderComparisonCanvas();
+  };
+}
+// 区 1：行沿用 result_rows 的分节与原序（节标题只读展示不折叠），列 = 2025-2030 + 五年变化 + CAGR
+function comparisonResultTable(baseline, current) {
+  const columns = ["2025", "2026", "2027", "2028", "2029", "2030", "five_year_change", "cagr"];
+  const labels = ["指标", "2025", "2026", "2027", "2028", "2029", "2030", "五年变化", "CAGR"];
+  const baseSnapshot = comparisonSnapshot(baseline), currentSnapshot = comparisonSnapshot(current);
+  const rows = (state.data?.result_rows || [])
+    .map((row) => {
+      if (row.kind === "header")
+        return `<tr class="section-head level-${row.level}"><td colspan="${labels.length}">${row.title}</td></tr>`;
+      const indent = /^(其中|——|\s)/.test(row.name) ? " indent" : "";
+      const cells = columns.map((column) => comparisonResultCell(baseSnapshot?.[row.name], currentSnapshot?.[row.name], column, column === "cagr" ? "%" : row.unit, row.precision)).join("");
+      return `<tr><td title="${row.name}"><strong class="name${indent}">${row.name}</strong></td>${cells}</tr>`;
+    })
+    .join("");
+  return `<div class="result-scroll"><table class="result-table comparison-table"><colgroup><col style="width:150px">${columns.map(() => '<col style="width:124px">').join("")}</colgroup><thead><tr>${labels.map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function comparisonResultCell(baseValues, currentValues, column, unit, precision) {
+  if (!baseValues || !currentValues) return '<td class="comparison-missing">无有效结果</td>';
+  const base = baseValues[column], current = currentValues[column];
+  if (!comparisonValuesDiffer(base, current))
+    return `<td>${formatResultValue(base, unit, precision) || "—"} → ${formatResultValue(current, unit, precision) || "—"}</td>`;
+  const delta = Number(current) - Number(base);
+  return `<td class="changed">${formatResultValue(base, unit, precision)} → ${formatResultValue(current, unit, precision)}<small class="cmp-delta ${delta < 0 ? "negative" : "positive"}">Δ ${deltaText(delta, unit, precision)}</small></td>`;
+}
+// 区 2：只列有差异的输入项；场景未调整的输入按参数基准值处理
+function comparisonInputDiffTable(baseline, current) {
+  const baseAdjustments = baseline?.input_adjustments || {}, currentAdjustments = current?.input_adjustments || {};
+  const entries = [];
+  (state.data?.parameters || []).forEach((item) => {
+    years.forEach((year) => {
+      const key = String(year);
+      const base = baseAdjustments[item.id]?.[key] ?? item.baseline?.[key];
+      const adjusted = currentAdjustments[item.id]?.[key] ?? item.baseline?.[key];
+      if (comparisonValuesDiffer(base, adjusted))
+        entries.push({ item, year: key, base: Number(base), adjusted: Number(adjusted) });
+    });
+  });
+  if (!entries.length) return '<div class="empty">输入参数完全一致</div>';
+  const rows = entries
+    .map(({ item, year, base, adjusted }) => {
+      const precision = rulePrecision(item), delta = adjusted - base;
+      return `<tr><td title="${item.name}"><strong class="name">${item.name}</strong></td><td>${year}</td><td>${formatResultValue(base, item.unit, precision)}</td><td>${formatResultValue(adjusted, item.unit, precision)}</td><td class="cmp-delta ${delta < 0 ? "negative" : "positive"}">${deltaText(delta, item.unit, precision)}</td></tr>`;
+    })
+    .join("");
+  return `<div class="result-scroll"><table class="result-table comparison-input-table"><colgroup><col style="width:180px"><col style="width:56px"><col style="width:110px"><col style="width:110px"><col style="width:96px"></colgroup><thead><tr>${["指标", "年份", "基准值", "对比值", "Δ"].map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 async function saveScenario() {
   if (isReadOnly()) { alert("历史模板只读，不能保存新场景"); return false; }
