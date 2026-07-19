@@ -129,6 +129,32 @@ class WorkbenchTests(unittest.TestCase):
         self.assertIn("five_year_change", row["values"])
         self.assertIn("cagr", row["values"])
 
+    def test_result_rows_carry_baseline_values_and_rule_precision(self):
+        data = self.service().initialize()
+        row = next(item for item in data["result_rows"] if item["name"] == "归母净利润")
+        self.assertEqual(row["baseline_values"], row["values"])
+        self.assertIsNone(row["precision"])
+        self.assertEqual(WorkbenchService._display_precision({"minimum_step": 1}), 0)
+        self.assertEqual(WorkbenchService._display_precision({"minimum_step": 0.01}), 2)
+        self.assertEqual(WorkbenchService._display_precision({"minimum_step": 0.5}), 1)
+        self.assertIsNone(WorkbenchService._display_precision({"minimum_step": None}))
+        self.assertIsNone(WorkbenchService._display_precision({}))
+
+    def test_calculation_result_rows_keep_pre_calculation_baseline(self):
+        class ShiftingEngine(InMemoryWorkbookEngine):
+            def read_summary(self, stage="summary_read"):
+                base = {str(year): 100.0 for year in range(2026, 2031)}
+                if stage == "baseline_summary_read":
+                    return {"归母净利润": dict(base), "利润": dict(base)}
+                return {"归母净利润": {year: value + 10 for year, value in base.items()}, "利润": dict(base)}
+
+        result = self.service(engine=ShiftingEngine()).calculate(1, [{"rule_id": "rule-贷款利率", "indicator_id": "价格假设|贷款利率|107", "values": {"2026": 4.2}}])
+        self.assertEqual(result["trust"]["status"], "valid")
+        row = next(item for item in result["result_rows"] if item["name"] == "归母净利润")
+        self.assertEqual(row["values"]["2026"], 110)
+        self.assertEqual(row["baseline_values"]["2026"], 100)
+
+
     def test_initialization_blocks_historical_template_workspace(self):
         service = WorkbenchService(FakeTemplates(), FakeRules([rule(), rule("存款利率")]), InMemoryWorkbookEngine, Path("."), "0717-fingerprint")
         with self.assertRaisesRegex(RuntimeError, "0717"):

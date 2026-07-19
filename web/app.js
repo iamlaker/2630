@@ -497,19 +497,60 @@ function renderDetails(details = []) {
   const columns = ["name", "2025", "2026", "2027", "2028", "2029", "2030", "five_year_change", "cagr"];
   const labels = ["指标", "2025", "2026", "2027", "2028", "2029", "2030", "五年变化", "CAGR"];
   const widths = currentDraft().columnWidths;
-  $("details").innerHTML = `<div class="result-scroll"><table class="result-table"><colgroup>${widths.map((width) => `<col style="width:${width}px">`).join("")}</colgroup><thead><tr>${labels.map((label, index) => `<th>${label}<span class="col-resizer" data-col="${index}"></span></th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr><td title="${row.name}"><strong>${row.name}</strong><small>${row.unit || ""} · ${row.group || ""}</small></td>${columns.slice(1).map((column) => `<td>${formatResultValue(row.values?.[column], column === "cagr" ? "%" : row.unit)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  $("details").innerHTML = `<div class="result-scroll"><table class="result-table"><colgroup>${widths.map((width) => `<col style="width:${width}px">`).join("")}</colgroup><thead><tr>${labels.map((label, index) => `<th>${label}<span class="col-resizer" data-col="${index}"></span></th>`).join("")}</tr></thead><tbody>${rows.map((row) => resultRow(row, columns)).join("")}</tbody></table></div>`;
   setupColumnResize();
 }
 
-function formatResultValue(value, unit) {
+function resultRow(row, columns) {
+  const constrained = state.reverseConstraints.some((x) => x.indicator_name === row.name);
+  const changed = resultRowChanged(row);
+  const classes = [constrained ? "constraint" : "", changed ? "changed" : ""].filter(Boolean).join(" ");
+  const markers = `${constrained ? " · 已设约束" : ""}${changed ? " · 较基准变化" : ""}`;
+  const cells = columns.slice(1).map((column) => {
+    const value = row.values?.[column];
+    const cls = resultValueClass(value, column);
+    return `<td${cls ? ` class="${cls}"` : ""}>${formatResultValue(value, column === "cagr" ? "%" : row.unit, row.precision)}</td>`;
+  }).join("");
+  return `<tr${classes ? ` class="${classes}"` : ""}><td title="${row.name}"><strong>${row.name}</strong><small>${row.unit || ""} · ${row.group || ""}${markers}</small></td>${cells}</tr>`;
+}
+
+function resultRowChanged(row) {
+  const baseline = row.baseline_values;
+  if (!baseline) return false;
+  return ["2025", "2026", "2027", "2028", "2029", "2030", "five_year_change", "cagr"].some((key) => {
+    const current = Number(row.values?.[key]), before = Number(baseline[key]);
+    return Number.isFinite(current) && Number.isFinite(before) && Math.abs(current - before) > 1e-9 * Math.max(1, Math.abs(current), Math.abs(before));
+  });
+}
+
+function resultValueClass(value, column) {
   if (value === null || value === undefined || value === "") return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  if (number < 0) return "negative";
+  return column === "five_year_change" ? "positive" : "";
+}
+
+function formatResultValue(value, unit, precision) {
+  if (value === null || value === undefined || value === "") return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
   if (unit === "%") {
-    const percentage = Math.abs(Number(value)) <= 1 ? Number(value) * 100 : Number(value);
+    const percentage = number * 100;
     const digits = Math.abs(percentage) < 10 ? 2 : Math.abs(percentage) <= 100 ? 1 : 0;
     return `${percentage.toFixed(digits)}%`;
   }
-  if (unit === "亿元") return Math.round(Number(value)).toLocaleString("zh-CN");
-  return typeof value === "number" ? value.toFixed(2) : value;
+  if (unit === "亿元") return Math.round(number).toLocaleString("zh-CN");
+  if (Number.isFinite(precision)) return number.toFixed(precision);
+  return number.toFixed(2);
+}
+
+function rulePrecision(item) {
+  const step = item?.rule?.minimum_step;
+  if (typeof step !== "number" || !Number.isFinite(step) || step <= 0) return undefined;
+  const text = step.toFixed(10).replace(/0+$/, "").replace(/\.$/, "");
+  const dot = text.indexOf(".");
+  return dot === -1 ? 0 : text.length - dot - 1;
 }
 
 function setupColumnResize() {
@@ -853,10 +894,11 @@ function renderCardGrid() {
     const variable = state.reverseVariables.find((entry) => entry.indicator_id === id);
     const constraint = state.reverseConstraints.find((entry) => entry.indicator_id === id || entry.indicator_name === item.name);
     const kind = state.module === "forward" ? "" : variable ? "variable" : constraint ? "constraint" : "";
+    const precision = rulePrecision(item);
     const body = state.module === "forward"
-      ? `<div class="work-card-years">${years.map((year) => `<div class="work-card-year"><span>${year}</span><span>${formatResultValue(values[year], item.unit)}</span><small>Δ ${formatResultValue(Number(values[year]) - Number(item.baseline[year]), item.unit)}</small></div>`).join("")}</div>`
+      ? `<div class="work-card-years">${years.map((year) => `<div class="work-card-year"><span>${year}</span><span>${formatResultValue(values[year], item.unit, precision)}</span><small>Δ ${formatResultValue(Number(values[year]) - Number(item.baseline[year]), item.unit, precision)}</small></div>`).join("")}</div>`
       : variable
-        ? `<p>初始值 ${formatResultValue(variable.initial ?? item.baseline[variable.year], item.unit)}</p><p>范围 ${variable.lower} — ${variable.upper}</p><p>优先级 ${variable.priority}</p>`
+        ? `<p>初始值 ${formatResultValue(variable.initial ?? item.baseline[variable.year], item.unit, precision)}</p><p>范围 ${variable.lower} — ${variable.upper}</p><p>优先级 ${variable.priority}</p>`
         : constraint
           ? `<p>${constraint.year} ${constraint.kind === "min" ? "≥" : constraint.kind === "max" ? "≤" : "="} ${constraint.value}</p><p>${constraint.hard ? "硬约束" : "软目标"}</p>`
           : "<p>选择后可添加为变量或约束</p>";

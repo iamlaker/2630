@@ -719,22 +719,7 @@ class WorkbenchService:
                 "baseline": indicator["year_values"], "rule": current_rule, "rule_status": current_rule["confirmation_status"] if current_rule else "unsupported",
             })
         baseline = {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
-        result_rows = [
-            {
-                "id": self._indicator_id(item),
-                "name": item["display_name"],
-                "group": item["group"],
-                "unit": item.get("unit"),
-                "location": item.get("cell_address"),
-                "values": {
-                    "2025": item.get("result_values", {}).get("2025"),
-                    **item["year_values"],
-                    "five_year_change": item.get("result_values", {}).get("five_year_change"),
-                    "cagr": item.get("result_values", {}).get("cagr"),
-                },
-            }
-            for item in catalog if item.get("classification") != "input"
-        ]
+        result_rows = self._result_rows(catalog, None, None, rules)
         return {
             "template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"], "activity": True, "editable": bool(publication)},
             "rule_set": {"active": bool(publication), "publication_id": publication.get("publication_id") if publication else None, "rule_count": len(rules)},
@@ -976,16 +961,7 @@ class WorkbenchService:
             result.update({"engine_mode": "cold_com", "worker_id": None, "queue_wait_ms": 0.0, "cancel_status": "not_requested"})
         outputs = result["output_indicators"]
         baseline = result["summary_before"] or {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
-        result_rows = [
-            {
-                "id": self._indicator_id(item), "name": item["display_name"], "group": item["group"],
-                "unit": item.get("unit"), "location": item.get("cell_address"),
-                "values": outputs.get(item["display_name"], item.get("result_values") or {
-                    "2025": None, **item["year_values"], "five_year_change": None, "cagr": None,
-                }),
-            }
-            for item in catalog if item.get("classification") != "input"
-        ]
+        result_rows = self._result_rows(catalog, outputs, baseline, published_rules)
         finished_at = datetime.now(timezone.utc).isoformat()
         publication = self.rules.get_active_publication(template_version_id) if hasattr(self.rules, "get_active_publication") else None
         return {
@@ -1006,6 +982,34 @@ class WorkbenchService:
     @staticmethod
     def _indicator_id(item: dict[str, Any]) -> str:
         return f"{item['group']}|{item['display_name']}|{item['row']}"
+
+    def _result_rows(self, catalog: list[dict[str, Any]], outputs: dict[str, Any] | None, baseline: dict[str, Any] | None, rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        precision_by_identity = {rule["indicator_key"]: self._display_precision(rule) for rule in rules if rule.get("indicator_key")}
+        rows = []
+        for item in catalog:
+            if item.get("classification") == "input":
+                continue
+            values = (outputs or {}).get(item["display_name"]) or {
+                "2025": item.get("result_values", {}).get("2025"),
+                **item["year_values"],
+                "five_year_change": item.get("result_values", {}).get("five_year_change"),
+                "cagr": item.get("result_values", {}).get("cagr"),
+            }
+            rows.append({
+                "id": self._indicator_id(item), "name": item["display_name"], "group": item["group"],
+                "unit": item.get("unit"), "location": item.get("cell_address"),
+                "values": values,
+                "baseline_values": dict(values) if baseline is None else baseline.get(item["display_name"]),
+                "precision": precision_by_identity.get(self._indicator_id(item)),
+            })
+        return rows
+
+    @staticmethod
+    def _display_precision(rule: dict[str, Any]) -> int | None:
+        step = rule.get("minimum_step")
+        if not isinstance(step, (int, float)) or isinstance(step, bool) or step <= 0:
+            return None
+        return len(f"{step:.10f}".rstrip("0").rstrip(".").partition(".")[2])
 
     @staticmethod
     def _core_results(outputs: dict[str, Any], baseline: dict[str, Any]) -> list[dict[str, Any]]:

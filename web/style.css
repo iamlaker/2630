@@ -93,6 +93,10 @@
 .result-table th { position: sticky; top: 0; background: #f1f5f2; padding: 8px 5px; text-align: right; border-bottom: 1px solid var(--line); }
 .result-table td { padding: 8px 5px; text-align: right; white-space: nowrap; border-bottom: 1px solid #e8ece9; overflow: hidden; text-overflow: ellipsis; }
 .result-table th:first-child, .result-table td:first-child { text-align: left; position: sticky; left: 0; background: inherit; z-index: 1; }
+.result-table tr.changed { background: #fbf7f0; }
+.result-table tr.constraint { background: #f8f5fa; }
+.result-table td.negative { color: #a15f5f; }
+.result-table td.positive { color: #47765f; }
 .col-resizer { position: absolute; right: -3px; top: 0; width: 7px; height: 100%; cursor: col-resize; }
 .col-resizer::after { content: ""; position: absolute; right: 3px; top: 22%; height: 56%; border-right: 1px solid #b8c5c0; }
 .rules-pane { grid-column: 1 / -1; min-height: 0; }
