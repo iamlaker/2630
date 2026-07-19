@@ -386,6 +386,11 @@ class FailingWarmWorker(FakeWarmWorker):
         raise WarmExcelWorkerError("simulated warm crash")
 
 
+class UnhealthyWarmWorker(FakeWarmWorker):
+    def health(self):
+        return {"healthy": False, "worker_id": self.worker_id, "queue_depth": 0, "error": "simulated startup failure"}
+
+
 class StatefulWarmWorker(FakeWarmWorker):
     def calculate(self, request, **kwargs):
         result = run_forward_calculation(LinearEngine(), request, template_path=kwargs["template_path"])
@@ -447,6 +452,38 @@ class WarmEngineModeTests(unittest.TestCase):
         service.calculate(1, self.adjustment(), engine_mode="warm_com")
         self.assertTrue(service.cleanup_warm_worker())
         self.assertTrue(FakeWarmWorker.instances[0].cleaned)
+
+    def test_warm_recheck_starts_worker_once_and_reports_health(self):
+        service = self.service()
+        first = service.warm_worker_recheck()
+        second = service.warm_worker_recheck()
+        self.assertTrue(first["healthy"])
+        self.assertEqual(first["worker_id"], "fake-1")
+        self.assertEqual(second["worker_id"], "fake-1")
+        self.assertEqual(len(FakeWarmWorker.instances), 1)
+
+    def test_warm_recheck_replaces_unhealthy_worker(self):
+        service = self.service(UnhealthyWarmWorker)
+        failed = service.warm_worker_recheck()
+        self.assertFalse(failed["healthy"])
+        self.assertEqual(failed["error"], "simulated startup failure")
+        service.warm_worker_factory = FakeWarmWorker
+        recovered = service.warm_worker_recheck()
+        self.assertTrue(FakeWarmWorker.instances[0].shutdown_called)
+        self.assertTrue(recovered["healthy"])
+        self.assertEqual(recovered["worker_id"], FakeWarmWorker.instances[1].worker_id)
+
+    def test_warm_recheck_without_fingerprint_reports_unavailable(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        service = WorkbenchService(
+            FakeTemplates(), FakeRules([rule(), rule("存款利率")]), InMemoryWorkbookEngine,
+            Path(directory.name), None, warm_worker_factory=FakeWarmWorker,
+        )
+        result = service.warm_worker_recheck()
+        self.assertFalse(result["healthy"])
+        self.assertIn("SHA-256", result["error"])
+        self.assertEqual(FakeWarmWorker.instances, [])
 
 
 class AsyncCalculationTests(unittest.TestCase):

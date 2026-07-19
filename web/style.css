@@ -23,7 +23,7 @@
 .module-tab.active { color: white; border-bottom-color: #9ac4ba; background: #ffffff0b; }
 .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .top-actions select { padding: 6px; }
-.health { color: #b8d8cf; font-size: 11px; }
+.health { color: #b8d8cf; font-size: 11px; cursor: pointer; user-select: none; }
 .health.failed { color: #f0b6b6; }
 .mode { display: flex; background: #102e2b; border-radius: 6px; padding: 3px; }
 .mode button { border: 0; background: transparent; color: #b8cbc6; padding: 6px 9px; }

@@ -17,6 +17,7 @@ const state = {
   favorites: persisted.favorites,
   autoTimer: null,
   newestDraftPending: false,
+  warmHealthy: null,
 };
 const $ = (id) => document.getElementById(id),
   years = [2026, 2027, 2028, 2029, 2030];
@@ -461,8 +462,36 @@ async function poll() {
   }
 }
 
+function renderWorkerHealth() {
+  const indicator = $("workerHealth");
+  indicator.classList.toggle("failed", state.warmHealthy === false);
+  if (state.warmHealthy === true) indicator.textContent = "● warm 热启动正常";
+  else if (state.warmHealthy === false) indicator.textContent = "● warm 不可用，点击复查";
+  else indicator.textContent = "● warm 健康检查中…";
+}
+async function recheckWorkerHealth() {
+  state.warmHealthy = null;
+  renderWorkerHealth();
+  try {
+    const response = await fetch("/api/warm-health");
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || "warm 健康检查失败");
+    state.warmHealthy = Boolean(data.healthy);
+  } catch (error) {
+    state.warmHealthy = false;
+  }
+  renderWorkerHealth();
+  if (state.warmHealthy || state.persisted.shared.forwardMode !== "auto") return;
+  state.persisted.shared.forwardMode = "manual";
+  document.querySelectorAll("[data-mode]").forEach((item) => item.classList.toggle("active", item.dataset.mode === "manual"));
+  $("workspaceNotice").hidden = false;
+  $("workspaceNotice").textContent = "warm 热启动不可用，自动模式已切换为手动；恢复健康后请手动切回自动。";
+  persistWorkbench();
+}
+
 function degradeForwardMode(reason) {
   if (state.module !== "forward") return;
+  state.warmHealthy = false;
   state.persisted.shared.degradationReason = reason;
   if (state.persisted.shared.forwardMode === "auto") {
     state.persisted.shared.forwardMode = "manual";
@@ -1093,7 +1122,7 @@ async function protectDraftBeforeSwitch() {
 }
 
 function scheduleAutomaticCalculation() {
-  if (state.module !== "forward" || state.persisted.shared.forwardMode !== "auto" || $("engineMode").value !== "warm_com") return;
+  if (state.module !== "forward" || state.persisted.shared.forwardMode !== "auto" || $("engineMode").value !== "warm_com" || state.warmHealthy !== true) return;
   clearTimeout(state.autoTimer);
   state.autoTimer = setTimeout(() => {
     if (state.task) state.newestDraftPending = true;
@@ -1142,7 +1171,15 @@ function initializeUnifiedWorkbench() {
     if (state.selected) renderYears();
     persistWorkbench();
   }));
-  document.querySelectorAll("[data-mode]").forEach((button) => (button.onclick = () => {
+  document.querySelectorAll("[data-mode]").forEach((button) => (button.onclick = async () => {
+    if (button.dataset.mode === "auto" && state.warmHealthy !== true) {
+      await recheckWorkerHealth();
+      if (state.warmHealthy !== true) {
+        $("workspaceNotice").hidden = false;
+        $("workspaceNotice").textContent = "warm 热启动不可用，无法启用自动模式。";
+        return;
+      }
+    }
     state.persisted.shared.forwardMode = button.dataset.mode;
     document.querySelectorAll("[data-mode]").forEach((item) => item.classList.toggle("active", item === button));
     persistWorkbench();
@@ -1504,6 +1541,7 @@ $("linkage").onchange = renderYears;
 $("calculate").onclick = calculate;
 $("calculateTop").onclick = calculate;
 $("cancelCalc").onclick = cancelCalculation;
+$("workerHealth").onclick = recheckWorkerHealth;
 $("engineValidation").onclick = showEngineValidation;
 $("saveScenario").onclick = saveScenario;
 $("startComparison").onclick = startComparison;
@@ -1534,3 +1572,4 @@ load()
     $("calculate").disabled = true;
     $("calculateTop").disabled = true;
   });
+recheckWorkerHealth();

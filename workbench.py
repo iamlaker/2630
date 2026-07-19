@@ -888,6 +888,12 @@ class WorkbenchService:
         with self._warm_lock:
             return self._warm_worker.health() if self._warm_worker else {"healthy": False, "worker_id": None, "queue_depth": 0, "error": "not_started"}
 
+    def warm_worker_recheck(self) -> dict[str, Any]:
+        try:
+            return self._get_warm_worker().health()
+        except WarmExcelWorkerError as exc:
+            return {"healthy": False, "worker_id": None, "queue_depth": 0, "error": str(exc)}
+
     def latest_engine_validation(self) -> dict[str, Any]:
         reports = sorted((self.storage_dir.parent.parent / ".scratch" / "perf").glob("ubuntu-engine-validation-*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
         if not reports:
@@ -1084,6 +1090,10 @@ def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> N
             if path == "/api/engine-validation":
                 try: self._send(200, service.latest_engine_validation())
                 except ValueError as exc: self._send(404, {"error": str(exc)})
+                return
+            if path == "/api/warm-health":
+                try: self._send(200, service.warm_worker_recheck())
+                except Exception as exc: self._send(500, {"error": str(exc)})
                 return
             if path.startswith("/api/exports/"):
                 try:
