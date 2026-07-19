@@ -205,16 +205,19 @@ function renderNav() {
     `${Object.keys(state.edits).length} 项已调整`;
   const grouped = {};
   list.forEach((x) => (grouped[x.group] ??= []).push(x));
+  const relevance = {};
   $("parameterTree").innerHTML =
     Object.entries(grouped)
       .map(
         ([name, items]) => {
           const key = `input:${name}`;
           const relevant = items.some(inputRelevant);
-          const open = Boolean(search || relevant || currentDraft().openGroups[key]);
+          relevance[key] = relevant;
+          const open = navGroupOpen(key, relevant, search);
+          const visibleItems = open ? items : items.filter((item) => state.favorites[item.id]);
           const total = state.data.parameters.filter((x) => x.group === name).length;
           const relevantCount = items.filter(inputRelevant).length;
-          return `<section class="nav-group"><button class="group-title" data-nav-group="${key}"><span>${open ? "−" : "+"}</span>${name}<small>${items.length}/${total} 项 · ${relevantCount} 相关</small></button>${open ? items.map((item) => `<div class="parameter ${state.selected?.id === item.id ? "active" : ""}" data-id="${item.id}"><span class="star ${state.favorites[item.id] ? "on" : ""}" data-star="${item.id}">${state.favorites[item.id] ? "★" : "☆"}</span><span>${item.name}</span>${inputStateDots(item)}<small>${item.rule_status === "confirmed" ? "已发布" : "待确认"}</small></div>`).join("") : ""}</section>`;
+          return `<section class="nav-group"><button class="group-title" data-nav-group="${key}"><span>${open ? "−" : "+"}</span>${name}<small>${items.length}/${total} 项 · ${relevantCount} 相关</small></button>${visibleItems.map((item) => `<div class="parameter ${state.selected?.id === item.id ? "active" : ""}" data-id="${item.id}"><span class="star ${state.favorites[item.id] ? "on" : ""}" data-star="${item.id}">${state.favorites[item.id] ? "★" : "☆"}</span><span>${item.name}</span>${inputStateDots(item)}<small>${item.rule_status === "confirmed" ? "已发布" : "待确认"}</small></div>`).join("")}</section>`;
         },
       )
       .join("") || '<div class="empty">没有匹配指标</div>';
@@ -232,10 +235,15 @@ function renderNav() {
   );
   document.querySelectorAll("[data-nav-group]").forEach((button) => (button.onclick = () => {
     const key = button.dataset.navGroup;
-    currentDraft().openGroups[key] = !currentDraft().openGroups[key];
+    currentDraft().openGroups[key] = !navGroupOpen(key, relevance[key], search);
     persistWorkbench();
     renderNav();
   }));
+}
+function navGroupOpen(key, relevant, search) {
+  if (search) return true;
+  const stored = currentDraft().openGroups[key];
+  return stored === undefined ? Boolean(relevant) : Boolean(stored);
 }
 function canEdit(item) {
   return Boolean(

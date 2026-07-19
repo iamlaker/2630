@@ -61,6 +61,16 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn('RULE_ERROR_STATUSES = ["rejected", "unsupported"]', app)
         self.assertIn("x.hit === false", app)
 
+    def test_navigation_collapsible_groups_and_star_pinning(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # relevant 仅作未手动操作时的默认展开，分组恒可折叠
+        self.assertIn("navGroupOpen(", app)
+        self.assertIn("stored === undefined", app)
+        # 折叠时星标项留在外面
+        self.assertIn("visibleItems", app)
+        # 折叠按钮取反有效状态而非简单布尔翻转
+        self.assertIn("openGroups[key] = !navGroupOpen(", app)
+
     def test_historical_template_read_only_switch_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
