@@ -1061,7 +1061,12 @@ class WorkbenchService:
                 "baseline_values": dict(values) if baseline is None else baseline.get(item["display_name"]),
                 "precision": precision_by_identity.get(self._indicator_id(item)),
             })
-        headers = [{"kind": "header", "row": section["row"], "title": section["title"], "level": section.get("level", 1)} for section in sections or ()]
+        first_input_row = min((item["row"] for item in catalog if item.get("classification") == "input"), default=None)
+        headers = [
+            {"kind": "header", "row": section["row"], "title": section["title"], "level": section.get("level", 1)}
+            for section in sections or ()
+            if first_input_row is None or section["row"] < first_input_row
+        ]
         return sorted(rows + headers, key=lambda entry: entry["row"])
 
     @staticmethod

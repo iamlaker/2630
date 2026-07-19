@@ -12,6 +12,7 @@ from forecast_engine import WorkbookEngine
 
 
 INPUT_GROUPS = {"重要参数", "规模假设", "价格假设", "中收假设", "资本假设"}
+DEFAULT_INPUT_OVERRIDES = {"并表口径总资产": "规模假设"}
 
 
 class TemplateImportService:
@@ -65,7 +66,7 @@ class TemplateImportService:
 
     def import_template(self, source_path: Path, *, input_overrides: dict[str, str] | None = None) -> dict[str, Any]:
         source_path = Path(source_path)
-        input_overrides = {"并表口径总资产": "规模假设", **(input_overrides or {})}
+        input_overrides = {**DEFAULT_INPUT_OVERRIDES, **(input_overrides or {})}
         invalid_groups = set(input_overrides.values()) - INPUT_GROUPS
         if invalid_groups:
             raise ValueError(f"输入覆盖分组无效: {sorted(invalid_groups)}")
@@ -131,7 +132,7 @@ class TemplateImportService:
         if row is None:
             raise ValueError("模板版本不存在")
         catalog = engine.read_indicator_catalog()
-        catalog["indicators"] = [self._classify(item, {"并表口径总资产": "规模假设"}) for item in catalog["indicators"]]
+        catalog["indicators"] = [self._classify(item, DEFAULT_INPUT_OVERRIDES) for item in catalog["indicators"]]
         self.connection.execute(
             "UPDATE template_versions SET catalog_json = ?, catalog_status = ? WHERE id = ?",
             (json.dumps(catalog, ensure_ascii=False), "regenerated", template_version_id),

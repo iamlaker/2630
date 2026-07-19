@@ -682,7 +682,8 @@ function renderDetails(details = []) {
   setupColumnResize();
   document.querySelectorAll("[data-result-section]").forEach((el) => (el.onclick = () => {
     const draft = currentDraft();
-    draft.resultSections[el.dataset.resultSection] = !(draft.resultSections[el.dataset.resultSection] ?? true);
+    const key = el.dataset.resultSection;
+    draft.resultSections[key] = isSectionCollapsed(draft, key);
     persistWorkbench();
     renderDetails(details);
   }));
@@ -695,6 +696,9 @@ function renderDetails(details = []) {
   }));
 }
 
+function isSectionCollapsed(draft, key) {
+  return (draft.resultSections[key] ?? true) === false;
+}
 // 按 sheet 原序渲染 标题节 + 指标行；折叠的节隐藏其下内容（星标行留外），搜索时忽略折叠
 function renderDetailEntries(entries, columns, query) {
   const draft = currentDraft();
@@ -705,7 +709,7 @@ function renderDetailEntries(entries, columns, query) {
         while (stack.length && stack[stack.length - 1].level >= entry.level) stack.pop();
         const hidden = stack.some((item) => item.collapsed);
         const key = `${entry.title}@${entry.row}`;
-        const collapsed = !query && (draft.resultSections[key] ?? true) === false;
+        const collapsed = !query && isSectionCollapsed(draft, key);
         stack.push({ level: entry.level, collapsed });
         if (hidden) return "";
         return `<tr class="section-head level-${entry.level}" data-result-section="${key}"><td colspan="${columns.length}">${collapsed ? "+" : "−"} ${entry.title}</td></tr>`;
@@ -1359,7 +1363,8 @@ function renderCardGrid() {
     return;
   }
   const draft = currentDraft();
-  const ids = draft.selected.slice(draft.page * cardsPerPage(), draft.page * cardsPerPage() + cardsPerPage());
+  const perPage = cardsPerPage();
+  const ids = draft.selected.slice(draft.page * perPage, draft.page * perPage + perPage);
   $("cardGrid").className = `card-grid layout-${draft.cardLayout}`;
   $("editor").hidden = !state.editorOpen;
   $("cardGrid").hidden = state.editorOpen || !ids.length;
@@ -1708,7 +1713,7 @@ function renderComparison(data) {
         (card) =>
           `<article class="card comparison-card"><h3>${card.name}</h3>${card.scenarios.map((sc) => `<div class="scenario-value ${sc.values ? "" : "comparison-failure"}"><strong>${sc.name}</strong>${sc.values ? `${formatResultValue(sc.values["2030"], card.unit) || "—"} <small>Δ ${formatResultValue(sc.differences?.["2030"], card.unit) || "—"}</small>` : "无有效结果"}</div>`).join("")}</article>`,
       )
-      .join(""),
+      .join("") || '<div class="empty">没有可对比的核心指标</div>',
   );
   $("comparisonGroup").innerHTML =
     '<option value="">全部分组</option>' +

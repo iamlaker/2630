@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from forecast_engine import ConfirmedInputRule, _normalize_sheet_name, file_sha256
+from forecast_engine import ConfirmedInputRule, _normalize_sheet_name, file_sha256, section_level
 
 
 class UbuntuEngineUnavailable(RuntimeError):
@@ -117,15 +117,21 @@ class LibreOfficeCalcEngine:
         sheet = self._sheet("汇总展示表")
         cursor = sheet.createCursor(); cursor.gotoEndOfUsedArea(True)
         rows = sheet.getCellRangeByPosition(0, 0, 7, cursor.RangeAddress.EndRow).getDataArray()
-        indicators, group = [], ""
+        indicators, sections, group = [], [], ""
         for index, row in enumerate(rows, 1):
             raw_group, name = str(row[0] or "").strip(), str(row[1] or "").strip()
             if raw_group: group = raw_group
+            if name == "指标": continue
             values = row[3:8]
-            if name and any(value != "" for value in values):
+            if name and not any(value != "" for value in values):
+                level = section_level(name)
+                if level is not None:
+                    sections.append({"row": index, "title": name, "level": level})
+                continue
+            if name:
                 indicators.append({"row": index, "display_name": name, "group": group, "unit": "未知", "cell_address": f"B{index}", "year_cells": {str(year): f"{column}{index}" for year, column in zip(range(2026, 2031), "DEFGH")}, "year_values": {str(year): value for year, value in zip(range(2026, 2031), values)}})
         sheet_index = int(sheet.getCellByPosition(0, 0).getCellAddress().Sheet) + 1
-        return {"worksheet": {"name": "汇总展示表", "index": sheet_index}, "year_mapping": {str(year): column for year, column in zip(range(2026, 2031), "DEFGH")}, "indicators": indicators}
+        return {"worksheet": {"name": "汇总展示表", "index": sheet_index}, "year_mapping": {str(year): column for year, column in zip(range(2026, 2031), "DEFGH")}, "indicators": indicators, "sections": sections}
 
     def read_cell_formula_or_value(self, sheet: str, cell: str) -> Any:
         target = self._sheet(sheet).getCellRangeByName(cell)
