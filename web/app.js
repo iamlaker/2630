@@ -53,6 +53,57 @@ async function load() {
   renderReverseMetrics();
   initializeUnifiedWorkbench();
 }
+const RULE_ERROR_STATUSES = ["rejected", "unsupported"];
+function activeReverseConstraints() {
+  return state.reverseConstraints.filter((x) => x.enabled !== false);
+}
+function stateDots(entries) {
+  return `<span class="state-dots">${entries
+    .filter(([on]) => on)
+    .map(([, cls, label]) => `<i class="dot ${cls}" title="${label}"></i>`)
+    .join("")}</span>`;
+}
+function constraintMissed(name) {
+  return Boolean(
+    state.reverseResult?.constraints?.some(
+      (x) => x.indicator_name === name && x.hit === false,
+    ),
+  );
+}
+function inputRelevant(item) {
+  return Boolean(
+    state.favorites[item.id] ||
+    state.edits[item.id] ||
+    currentDraft().selected.includes(item.id) ||
+    state.data.display_defaults?.inputs?.includes(item.id) ||
+    activeReverseConstraints().some((x) => x.indicator_id === item.id)
+  );
+}
+function inputStateDots(item) {
+  return stateDots([
+    [currentDraft().selected.includes(item.id), "selected", "已选"],
+    [Boolean(state.edits[item.id]), "edited", "已修改"],
+    [
+      state.reverseConstraints.some((x) => x.indicator_id === item.id) ||
+        state.reverseVariables.some((x) => x.indicator_id === item.id),
+      "constraint",
+      "约束",
+    ],
+    [
+      state.data.trust?.status === "valid" &&
+        Boolean(state.data.edited_values?.[item.id]),
+      "result",
+      "已有结果",
+    ],
+    [
+      RULE_ERROR_STATUSES.includes(item.rule_status) ||
+        (activeReverseConstraints().some((x) => x.indicator_id === item.id) &&
+          constraintMissed(item.name)),
+      "error",
+      "异常",
+    ],
+  ]);
+}
 function renderNav() {
   const search = $("search").value.toLowerCase(),
     group = $("group").value,
@@ -79,9 +130,11 @@ function renderNav() {
       .map(
         ([name, items]) => {
           const key = `input:${name}`;
-          const relevant = items.some((item) => state.favorites[item.id] || state.edits[item.id] || currentDraft().selected.includes(item.id));
+          const relevant = items.some(inputRelevant);
           const open = Boolean(search || relevant || currentDraft().openGroups[key]);
-          return `<section class="nav-group"><button class="group-title" data-nav-group="${key}"><span>${open ? "−" : "+"}</span>${name}<small>${items.length} 项</small></button>${open ? items.map((item) => `<div class="parameter ${state.selected?.id === item.id ? "active" : ""}" data-id="${item.id}"><span class="star ${state.favorites[item.id] ? "on" : ""}" data-star="${item.id}">${state.favorites[item.id] ? "★" : "☆"}</span><span>${item.name}</span><span class="state-dots">${currentDraft().selected.includes(item.id) ? '<i class="dot selected"></i>' : ""}${state.edits[item.id] ? '<i class="dot edited"></i>' : ""}${state.reverseConstraints.some((x) => x.indicator_id === item.id) ? '<i class="dot constraint"></i>' : ""}</span><small>${item.rule_status === "confirmed" ? "已发布" : "待确认"}</small></div>`).join("") : ""}</section>`;
+          const total = state.data.parameters.filter((x) => x.group === name).length;
+          const relevantCount = items.filter(inputRelevant).length;
+          return `<section class="nav-group"><button class="group-title" data-nav-group="${key}"><span>${open ? "−" : "+"}</span>${name}<small>${items.length}/${total} 项 · ${relevantCount} 相关</small></button>${open ? items.map((item) => `<div class="parameter ${state.selected?.id === item.id ? "active" : ""}" data-id="${item.id}"><span class="star ${state.favorites[item.id] ? "on" : ""}" data-star="${item.id}">${state.favorites[item.id] ? "★" : "☆"}</span><span>${item.name}</span>${inputStateDots(item)}<small>${item.rule_status === "confirmed" ? "已发布" : "待确认"}</small></div>`).join("") : ""}</section>`;
         },
       )
       .join("") || '<div class="empty">没有匹配指标</div>';
@@ -371,6 +424,8 @@ async function poll() {
               `<article class="card"><h3>${x.indicator_name}</h3><div class="metric">${x.hit ? "命中" : "未命中"}</div><div class="years-mini">实际 ${x.actual ?? "—"} · 偏差 ${x.deviation}</div></article>`,
           )
           .join("");
+      renderNav();
+      renderOutputNavigation();
     } else {
       state.data = { ...state.data, ...data };
       renderTrust(data);
@@ -378,6 +433,8 @@ async function poll() {
       state.data.result_rows = data.result_rows || state.data.result_rows;
       renderDetails(state.data.result_rows || data.details);
       renderTrace(data.calculation_details);
+      renderNav();
+      renderOutputNavigation();
       currentDraft().calculatedUnsaved = true;
       persistWorkbench(); updateDraftStatus();
     }
@@ -648,7 +705,7 @@ function renderReverseConstraints() {
     .forEach(
       (x) =>
       (x.onchange = () =>
-          ((state.reverseConstraints[+x.dataset.enable].enabled = x.checked), syncReverseDraft())),
+          ((state.reverseConstraints[+x.dataset.enable].enabled = x.checked), syncReverseDraft(), renderNav(), renderOutputNavigation())),
     );
   document.querySelectorAll("[data-remove]").forEach(
     (x) =>
@@ -658,6 +715,10 @@ function renderReverseConstraints() {
         renderReverseConstraints();
       }),
   );
+  if (state.data) {
+    renderNav();
+    renderOutputNavigation();
+  }
 }
 async function runReverse() {
   if (
@@ -761,6 +822,7 @@ function renderReverseVariables() {
         renderReverseVariables();
       }),
   );
+  if (state.data) renderNav();
 }
 async function runReverseV2() {
   if (!state.reverseVariables.length || !state.reverseConstraints.some((x) => x.enabled) || state.task)
@@ -826,6 +888,7 @@ function loadModuleDraft(module) {
     $("editorEmpty").hidden = false;
   }
   renderNav();
+  renderOutputNavigation();
   renderReverseConstraints();
   renderReverseVariables();
   setCalculateEnabled();
@@ -958,15 +1021,46 @@ function updateDraftStatus() {
   $("draftStatus").textContent = dirty ? `● ${state.persisted.restored ? "已恢复的" : ""}未保存草稿` : "";
 }
 
+function outputRelevant(row) {
+  return Boolean(
+    currentDraft().outputSelection.includes(row.id) ||
+    state.data.display_defaults?.outputs?.includes(row.id) ||
+    activeReverseConstraints().some((x) => x.indicator_name === row.name)
+  );
+}
+function outputStateDots(row) {
+  const hasValues = years.some((year) =>
+    Number.isFinite(Number(row.values?.[year])),
+  );
+  const valid = state.data.trust?.status === "valid";
+  return stateDots([
+    [currentDraft().outputSelection.includes(row.id), "selected", "已选"],
+    [
+      state.reverseConstraints.some((x) => x.indicator_name === row.name),
+      "constraint",
+      "约束",
+    ],
+    [valid && hasValues, "result", "已有结果"],
+    [
+      (activeReverseConstraints().some((x) => x.indicator_name === row.name) &&
+        constraintMissed(row.name)) ||
+        (valid && !hasValues),
+      "error",
+      "异常",
+    ],
+  ]);
+}
 function renderOutputNavigation() {
   const query = ($("outputSearch")?.value || "").toLowerCase();
   const rows = state.data?.result_rows || [];
   const groups = {};
   rows.filter((row) => !query || row.name.toLowerCase().includes(query)).forEach((row) => (groups[row.group || "未分组"] ??= []).push(row));
   $("outputGroups").innerHTML = Object.entries(groups).map(([group, items]) => {
-    const key = `output:${group}`, relevant = items.some((item) => currentDraft().outputSelection.includes(item.id));
+    const key = `output:${group}`, relevant = items.some(outputRelevant);
     const open = Boolean(query || relevant || currentDraft().openGroups[key]);
-    return `<section class="output-group"><button data-output-group="${key}">${open ? "−" : "+"} ${group}<span>${items.length}</span></button>${open ? `<div class="output-metrics">${items.map((item) => `<label><input type="checkbox" data-output="${item.id}" ${currentDraft().outputSelection.includes(item.id) ? "checked" : ""}> ${item.name}</label>`).join("")}</div>` : ""}</section>`;
+    const total = rows.filter((row) => (row.group || "未分组") === group).length;
+    const relevantCount = items.filter(outputRelevant).length;
+    return `<section class="output-group"><button data-output-group="${key}">${open ? "−" : "+"} ${group}<span>${items.length}/${total} 项 · ${relevantCount} 相关</span></button>${open ? `<div class="output-metrics">${items.map((item) => `<label><input type="checkbox" data-output="${item.id}" ${currentDraft().outputSelection.includes(item.id) ? "checked" : ""}> ${item.name}${outputStateDots(item)}</label>`).join("")}</div>` : ""}</section>`;
   }).join("");
   document.querySelectorAll("[data-output-group]").forEach((button) => (button.onclick = () => {
     currentDraft().openGroups[button.dataset.outputGroup] = !currentDraft().openGroups[button.dataset.outputGroup]; persistWorkbench(); renderOutputNavigation();
@@ -974,7 +1068,7 @@ function renderOutputNavigation() {
   document.querySelectorAll("[data-output]").forEach((input) => (input.onchange = () => {
     const id = input.dataset.output;
     currentDraft().outputSelection = input.checked ? [...new Set([...currentDraft().outputSelection, id])] : currentDraft().outputSelection.filter((item) => item !== id);
-    persistWorkbench(); renderDetails(filteredResultRows());
+    persistWorkbench(); renderDetails(filteredResultRows()); renderOutputNavigation();
   }));
 }
 

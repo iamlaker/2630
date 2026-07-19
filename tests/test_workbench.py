@@ -40,6 +40,27 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn('.mobile-pane-tabs', css)
         self.assertIn('.workspace[data-mobile-pane=', css)
 
+    def test_navigation_group_counts_and_five_status_dots(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 组头展示 可见/总数 与相关计数，输入与输出两侧一致
+        self.assertEqual(app.count("/${total} 项 · ${relevantCount} 相关"), 2)
+        # 五种状态点并列：已选、已修改、约束、已有结果、异常
+        for cls in ("selected", "edited", "constraint", "result", "error"):
+            self.assertIn(f".dot.{cls}", css)
+            self.assertIn(f'tag {cls}', html)
+        # 输出导航同样渲染状态点
+        self.assertIn("${outputStateDots(item)}", app)
+        # 自动展开覆盖管理员默认项与活跃反向约束
+        self.assertIn("display_defaults?.inputs?.includes", app)
+        self.assertIn("display_defaults?.outputs?.includes", app)
+        self.assertIn("activeReverseConstraints()", app)
+        # 已有结果基于真实计算数据；异常覆盖规则错误与未命中约束
+        self.assertIn("edited_values?.[item.id]", app)
+        self.assertIn('RULE_ERROR_STATUSES = ["rejected", "unsupported"]', app)
+        self.assertIn("x.hit === false", app)
+
 
 def rule(name="贷款利率", *, status="confirmed", linkage="independent", pending=False, allowed=(0, 10)):
     return {

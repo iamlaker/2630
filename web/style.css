@@ -47,13 +47,15 @@
 .tag.selected { background: #e4eaf0; color: #667f9b; }
 .tag.edited { background: #f0e8dc; color: #a0783f; }
 .tag.constraint { background: #ebe7f0; color: #786d8e; }
+.tag.result { background: #e1ebe5; color: #567a68; }
+.tag.error { background: #f1e3e3; color: #9a6262; }
 .groups { overflow: auto; padding: 3px 8px 16px; }
 .nav-group { border-bottom: 1px solid #e8edea; }
 .nav-group .group-title { width: 100%; border: 0; background: transparent; display: flex; gap: 8px; align-items: center; text-align: left; margin: 0; padding: 10px 5px; }
 .nav-group .group-title small { margin-left: auto; }
 .state-dots { display: flex; gap: 3px; margin-left: auto; }
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.dot.selected { background: #667f9b; }.dot.edited { background: #a0783f; }.dot.constraint { background: #786d8e; }
+.dot.selected { background: #667f9b; }.dot.edited { background: #a0783f; }.dot.constraint { background: #786d8e; }.dot.result { background: #567a68; }.dot.error { background: #9a6262; }
 .center-pane { padding: 0; }
 .center-toolbar { flex: 0 0 48px; padding: 0 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
 .center-toolbar .spacer { flex: 1; }
@@ -88,7 +90,7 @@
 .right-pane > :not(.pane-head) { margin-left: 12px; margin-right: 12px; }
 .right-pane .details { max-height: none; overflow: auto; }
 .output-navigation { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 0; max-height: 190px; overflow: auto; }
-.output-navigation input { width: 100%; margin-bottom: 5px; }.output-group button { width: 100%; border: 0; text-align: left; display: flex; justify-content: space-between; }.output-metrics { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; }.output-metrics label { font-size: 10px; background: #f2f5f3; padding: 3px 5px; }
+.output-navigation input { width: 100%; margin-bottom: 5px; }.output-group button { width: 100%; border: 0; text-align: left; display: flex; justify-content: space-between; }.output-metrics { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; }.output-metrics label { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; background: #f2f5f3; padding: 3px 5px; }
 .result-table { border-collapse: collapse; table-layout: fixed; width: max-content; min-width: 100%; font-size: 11px; }
 .result-table th { position: sticky; top: 0; background: #f1f5f2; padding: 8px 5px; text-align: right; border-bottom: 1px solid var(--line); }
 .result-table td { padding: 8px 5px; text-align: right; white-space: nowrap; border-bottom: 1px solid #e8ece9; overflow: hidden; text-overflow: ellipsis; }
