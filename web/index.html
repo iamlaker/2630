@@ -41,6 +41,17 @@
         <div class="pane-resizer" data-resize="left" title="拖动调整；双击恢复"></div>
         <section id="centerPane" class="pane center-pane">
           <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div></div>
+          <div id="constraintBuilder" class="constraint-builder" hidden>
+            <strong>约束构建器</strong>
+            <input id="cbSearch" placeholder="搜索指标" />
+            <select id="cbMetric" title="约束指标"></select>
+            <select id="cbRelation" title="约束关系"><option value="&lt;">&lt; 小于</option><option value="≤">≤ 小于等于</option><option value="=">= 等于</option><option value="≥" selected>≥ 大于等于</option><option value="&gt;">&gt; 大于</option><option value="between">区间 [a, b]</option></select>
+            <select id="cbScope" title="年份范围"><option value="all">五年同值</option><option value="each">逐年</option><option value="single">单年</option></select>
+            <select id="cbYear" title="约束年份" hidden><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option selected>2030</option></select>
+            <span id="cbValues" class="cb-values"></span>
+            <select id="cbHard" title="软硬"><option value="true">硬约束</option><option value="false">软目标</option></select>
+            <button id="cbAdd" class="primary">添加约束</button>
+          </div>
           <div id="editorEmpty" class="empty">从左侧选择指标加入卡片</div>
           <div id="cardGrid" class="card-grid"></div>
           <div id="editor" class="editor" hidden>

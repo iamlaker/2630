@@ -144,6 +144,44 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("data-reset-card", app)
         self.assertIn('id="closeEditor"', html)
 
+    def test_reverse_constraint_builder_grouped_ui_hooks(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 构建器容器位于中栏画布顶部（center toolbar 与 cardGrid 之间），模块切换控制显隐
+        self.assertIn('id="constraintBuilder"', html)
+        self.assertLess(html.index('id="constraintBuilder"'), html.index('id="cardGrid"'))
+        self.assertIn('$("constraintBuilder").hidden', app)
+        # 指标选择：输出指标来自 result_rows（kind!=="header"）+ 输入指标，分组 optgroup，带搜索
+        self.assertIn('id="cbSearch"', html)
+        self.assertIn('id="cbMetric"', html)
+        self.assertIn('optgroup label="输出指标"', app)
+        self.assertIn('optgroup label="输入指标"', app)
+        # 关系映射在前端展开：>/≥→min、</≤→max、=→target、区间→同一年 min+max 两条
+        self.assertIn("function constraintRelationKinds(", app)
+        self.assertIn('relation === ">" || relation === "≥"', app)
+        self.assertIn('relation === "<" || relation === "≤"', app)
+        self.assertIn('["min", "max"]', app)
+        # 范围：五年同值/逐年/单年（构建器内选择）
+        for label in ("五年同值", "逐年", "单年"):
+            self.assertIn(label, html)
+        # 一次构建提交的记录共享 group_id 并保留分组元数据
+        self.assertIn("group_id", app)
+        self.assertIn("group_label", app)
+        self.assertIn("function constraintGroups(", app)
+        # 多记录组渲染摘要卡，组级软硬/启停/删除作用于组内全部记录
+        self.assertIn("constraintGroupCardBody(", app)
+        for hook in ("data-cg-enable", "data-cg-remove", "data-cg-hard"):
+            self.assertIn(hook, app)
+        # 旧编辑器 details 添加表单移除；约束列表与运行按钮保留
+        self.assertNotIn('id="reverseMetric"', app)
+        self.assertNotIn('id="addConstraint"', app)
+        self.assertNotIn("reverse-add", app)
+        self.assertIn('id="runReverse"', app)
+        self.assertIn('id="reverseConstraints"', app)
+        # 样式
+        self.assertIn(".constraint-builder", css)
+
 
 def rule(name="贷款利率", *, status="confirmed", linkage="independent", pending=False, allowed=(0, 10)):
     return {

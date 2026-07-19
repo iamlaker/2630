@@ -73,6 +73,17 @@
 .pages { display: flex; gap: 5px; }
 .page-dot { border-radius: 12px; padding: 3px 8px; font-size: 10px; }
 .page-dot.active { background: #173b38; color: white; }
+.constraint-builder { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #f8faf8; }
+.constraint-builder strong { font-size: 12px; margin-right: 4px; align-self: center; }
+.constraint-builder input, .constraint-builder select { font-size: 11px; padding: 5px; border: 1px solid var(--line); border-radius: 5px; background: white; }
+.constraint-builder #cbSearch { width: 110px; }
+.constraint-builder #cbMetric { max-width: 200px; }
+.constraint-builder .cb-values { display: flex; flex-wrap: wrap; gap: 6px; }
+.constraint-builder .cb-values label { font-size: 10px; color: var(--muted); }
+.constraint-builder .cb-values input { width: 84px; display: block; margin-top: 2px; }
+.constraint-group-summary .cg-head { font-size: 11px; font-weight: 600; color: var(--teal); margin-bottom: 6px; }
+.constraint-group-summary .cg-year { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed #edf1ef; }
+.constraint-group-summary .cg-year label { color: var(--muted); font: 10px Consolas, monospace; }
 .editor { padding: 12px; overflow: auto; min-height: 0; }
 .result-table .section-head td { font-weight: 600; color: var(--ink); background: #eef3f0; cursor: pointer; user-select: none; }
 .result-table .section-head.level-2 td { padding-left: 20px; font-weight: 500; background: #f6f9f7; }

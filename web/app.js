@@ -64,7 +64,7 @@ async function load(templateVersionId = null) {
   renderDetails(state.data.result_rows || state.data.details);
   renderOutputNavigation();
   renderTrace(state.data.calculation_details);
-  renderReverseMetrics();
+  renderConstraintMetrics();
   $("exportReverse").disabled = true;
   $("exportComparison").disabled = true;
   if (state.selected && !isReadOnly()) select(state.selected.id);
@@ -534,6 +534,7 @@ async function poll() {
       state.data.result_rows = data.result_rows || state.data.result_rows;
       renderDetails(state.data.result_rows || data.details);
       renderTrace(data.calculation_details);
+      renderConstraintMetrics();
       renderNav();
       renderOutputNavigation();
       currentDraft().calculatedUnsaved = true;
@@ -800,87 +801,203 @@ function setupReverse() {
     b = document.createElement("details");
   b.className = "reverse";
   b.innerHTML =
-    '<summary>单变量反向测算 v1</summary><p>当前指标作为变量；变量初始值与搜索范围在卡片上配置，此处添加约束后手动搜索。</p><div class="reverse-add"><select id="reverseMetric"></select><select id="reverseYear">' +
-    years
-      .map((y) => `<option ${y === 2030 ? "selected" : ""}>${y}</option>`)
-      .join("") +
-    '</select><select id="reverseKind"><option value="min">≥</option><option value="max">≤</option><option value="target">=</option></select><input id="reverseValue" type="number" placeholder="约束值"><select id="reverseHard"><option value="true">硬约束</option><option value="false">软目标</option></select><button id="addConstraint">添加</button></div><div id="reverseConstraints"></div><button class="primary" id="runReverse">开始反向测算</button>';
+    '<summary>单变量反向测算 v1</summary><p>当前指标作为变量；变量初始值与搜索范围在卡片上配置，约束在画布顶部的约束构建器中添加，此处查看已添加约束后手动搜索。</p><div id="reverseConstraints"></div><button class="primary" id="runReverse">开始反向测算</button>';
   host.parentElement.insertBefore(b, host);
   const v2 = document.createElement("details");
   v2.className = "reverse";
   v2.innerHTML =
     '<summary>多输入优先级反推 v2</summary><p>选择当前 confirmed 输入加入变量，按优先级逐项搜索；最多 15 次正向测算。</p><button id="addReverseVariable">加入当前输入</button><div id="reverseVariables"></div><button class="primary" id="runReverseV2">开始 v2 反推</button>';
   host.parentElement.insertBefore(v2, host);
-  $("addConstraint").onclick = addReverseConstraint;
   $("runReverse").onclick = runReverse;
   $("addReverseVariable").onclick = addReverseVariable;
   $("runReverseV2").onclick = runReverseV2;
-  renderReverseMetrics();
   renderReverseConstraints();
   renderReverseVariables();
 }
-function renderReverseMetrics() {
-  if (!$("reverseMetric") || !state.data) return;
-  const items = [
-    ...state.data.parameters.map((x) => ({
-      id: x.id,
-      name: x.name,
-      type: "input",
-    })),
-    ...state.data.details
-      .filter((x) => x.classification === "output")
-      .map((x) => ({ id: "", name: x.name, type: "output" })),
-  ];
-  $("reverseMetric").innerHTML = items
-    .map(
-      (x) =>
-        `<option value="${x.type}|${x.id}|${x.name}">${x.type === "input" ? "输入" : "输出"} · ${x.name}</option>`,
-    )
-    .join("");
+function constraintRelationKinds(relation) {
+  return relation === ">" || relation === "≥"
+    ? ["min"]
+    : relation === "<" || relation === "≤"
+      ? ["max"]
+      : relation === "between"
+        ? ["min", "max"]
+        : ["target"];
 }
-function addReverseConstraint() {
-  const value = Number($("reverseValue").value);
-  if (!Number.isFinite(value)) return alert("请输入约束值");
-  const [indicator_type, indicator_id, indicator_name] =
-    $("reverseMetric").value.split("|");
-  state.reverseConstraints.push({
-    indicator_type,
-    indicator_id,
-    indicator_name,
-    year: $("reverseYear").value,
-    kind: $("reverseKind").value,
-    value,
-    hard: $("reverseHard").value === "true",
-    enabled: true,
-  });
+function renderConstraintMetrics() {
+  const select = $("cbMetric");
+  if (!select || !state.data) return;
+  const query = ($("cbSearch").value || "").toLowerCase(),
+    outputs = (state.data.result_rows || []).filter(
+      (row) => row.kind !== "header" && (!query || row.name.toLowerCase().includes(query)),
+    ),
+    inputs = state.data.parameters.filter(
+      (x) => !query || x.name.toLowerCase().includes(query),
+    );
+  select.innerHTML =
+    `<optgroup label="输出指标">${outputs.map((row) => `<option value="output||${row.name}">${row.name}</option>`).join("")}</optgroup>` +
+    `<optgroup label="输入指标">${inputs.map((x) => `<option value="input|${x.id}|${x.name}">${x.name}</option>`).join("")}</optgroup>`;
+}
+function renderConstraintValueInputs() {
+  if (!$("cbValues")) return;
+  const relation = $("cbRelation").value,
+    scope = $("cbScope").value,
+    pair = relation === "between";
+  $("cbYear").hidden = scope !== "single";
+  const field = (key, label) =>
+      pair
+        ? `<label>${label} 下限<input type="number" step="any" data-cb-value="${key}|0"></label><label>${label} 上限<input type="number" step="any" data-cb-value="${key}|1"></label>`
+        : `<label>${label} 目标值<input type="number" step="any" data-cb-value="${key}"></label>`;
+  $("cbValues").innerHTML =
+    scope === "each"
+      ? years.map((year) => field(year, year)).join("")
+      : scope === "single"
+        ? field($("cbYear").value, $("cbYear").value)
+        : field("all", "五年同值");
+}
+function addConstraintGroup() {
+  if (!state.data || !$("cbMetric").value) return alert("请选择约束指标");
+  const [indicator_type, indicator_id, indicator_name] = $("cbMetric").value.split("|"),
+    relation = $("cbRelation").value,
+    scope = $("cbScope").value,
+    hard = $("cbHard").value === "true",
+    kinds = constraintRelationKinds(relation),
+    pair = kinds.length > 1,
+    entries = {};
+  document.querySelectorAll("[data-cb-value]").forEach((el) => (entries[el.dataset.cbValue] = Number(el.value)));
+  const targetYears = scope === "single" ? [String($("cbYear").value)] : years.map(String),
+    records = [];
+  for (const year of targetYears) {
+    const key = scope === "all" ? "all" : year;
+    if (pair) {
+      const lower = entries[`${key}|0`], upper = entries[`${key}|1`];
+      if (!Number.isFinite(lower) || !Number.isFinite(upper)) return alert("请输入完整的区间上下限");
+      if (lower > upper) return alert("区间下限不能大于上限");
+      records.push({ year, kind: "min", value: lower }, { year, kind: "max", value: upper });
+    } else {
+      const value = entries[key];
+      if (!Number.isFinite(value)) return alert("请输入约束目标值");
+      records.push({ year, kind: kinds[0], value });
+    }
+  }
+  const scopeLabel = scope === "all" ? "五年同值" : scope === "each" ? "逐年" : `${targetYears[0]} 单年`,
+    valueLabel = pair ? `[${records[0].value}, ${records[1].value}]` : `${records[0].value}`,
+    group_label = scope === "each"
+      ? `${indicator_name} ${relation === "between" ? "区间" : relation} · ${scopeLabel}`
+      : `${indicator_name} ${relation === "between" ? "区间" : relation} ${valueLabel} · ${scopeLabel}`,
+    group_id = `cg-${Date.now().toString(36)}-${state.reverseConstraints.length}`;
+  records.forEach((record) =>
+    state.reverseConstraints.push({
+      indicator_type,
+      indicator_id,
+      indicator_name,
+      ...record,
+      hard,
+      enabled: true,
+      group_id,
+      group_label,
+      relation,
+      scope,
+    }),
+  );
   syncReverseDraft();
   renderReverseConstraints();
   renderCardGrid();
 }
-function renderReverseConstraints() {
-  $("reverseConstraints").innerHTML =
-    state.reverseConstraints
-      .map(
-        (x, i) =>
-          `<label class="reverse-row"><input type="checkbox" data-enable="${i}" ${x.enabled ? "checked" : ""}><span>${x.indicator_name} · ${x.year} · ${x.kind === "min" ? "≥" : x.kind === "max" ? "≤" : "="} ${x.value} · ${x.hard ? "硬" : "软"}</span><button data-remove="${i}">删除</button></label>`,
-      )
-      .join("") || "<small>尚未添加约束</small>";
-  document
-    .querySelectorAll("[data-enable]")
-    .forEach(
-      (x) =>
-      (x.onchange = () =>
-          ((state.reverseConstraints[+x.dataset.enable].enabled = x.checked), syncReverseDraft(), renderNav(), renderOutputNavigation(), renderCardGrid())),
-    );
-  document.querySelectorAll("[data-remove]").forEach(
-    (x) =>
-      (x.onclick = () => {
-        state.reverseConstraints.splice(+x.dataset.remove, 1);
-        syncReverseDraft();
-        renderReverseConstraints();
-        renderCardGrid();
+function constraintGroups() {
+  const buckets = new Map();
+  state.reverseConstraints.forEach((constraint, index) => {
+    const key = constraint.group_id || `legacy-${index}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(index);
+  });
+  return [...buckets.entries()].map(([key, indexes]) => ({
+    key,
+    indexes,
+    records: indexes.map((index) => state.reverseConstraints[index]),
+  }));
+}
+function constraintGroupText(group) {
+  const first = group.records[0],
+    base = first.group_label || `${first.indicator_name} · ${first.year} · ${first.kind === "min" ? "≥" : first.kind === "max" ? "≤" : "="} ${first.value}`;
+  return `${base} · ${first.hard ? "硬约束" : "软目标"}${group.records.some((x) => x.enabled === false) ? " · 已停用" : ""}`;
+}
+function constraintGroupYearLines(group) {
+  const byYear = new Map();
+  group.records.forEach((record) => {
+    const year = String(record.year);
+    if (!byYear.has(year)) byYear.set(year, []);
+    byYear.get(year).push(record);
+  });
+  const symbol = (record) =>
+    record.relation && record.relation !== "between" ? record.relation : record.kind === "min" ? "≥" : record.kind === "max" ? "≤" : "=";
+  return [...byYear.entries()]
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([year, records]) => {
+      const lower = records.find((x) => x.kind === "min"),
+        upper = records.find((x) => x.kind === "max");
+      if (lower && upper) return `<div class="cg-year"><label>${year}</label><span>区间 [${lower.value}, ${upper.value}]</span></div>`;
+      return records.map((record) => `<div class="cg-year"><label>${year}</label><span>${symbol(record)} ${record.value}</span></div>`).join("");
+    })
+    .join("");
+}
+function constraintGroupCardBody(group) {
+  const first = group.records[0],
+    enabled = group.records.some((x) => x.enabled !== false);
+  return `<div class="constraint-group-summary"><div class="cg-head">${first.group_label || first.indicator_name}</div>${constraintGroupYearLines(group)}</div><div class="card-foot"><button data-cg-hard="${group.key}">${first.hard ? "切换为软目标" : "切换为硬约束"}</button><label><input type="checkbox" data-cg-enable="${group.key}" ${enabled ? "checked" : ""}> 启用</label><button data-cg-remove="${group.key}">删除</button></div>`;
+}
+function updateConstraintGroup(key, mutate) {
+  const group = constraintGroups().find((item) => item.key === key);
+  if (!group) return;
+  mutate(group);
+  syncReverseDraft();
+  renderReverseConstraints();
+  renderCardGrid();
+}
+function bindConstraintGroupEvents() {
+  document.querySelectorAll("[data-cg-enable]").forEach(
+    (el) =>
+      (el.onchange = () =>
+        updateConstraintGroup(el.dataset.cgEnable, (group) =>
+          group.records.forEach((record) => (record.enabled = el.checked)),
+        )),
+  );
+  document.querySelectorAll("[data-cg-hard]").forEach(
+    (el) =>
+      (el.onclick = () =>
+        updateConstraintGroup(el.dataset.cgHard, (group) => {
+          const hard = !group.records[0].hard;
+          group.records.forEach((record) => (record.hard = hard));
+        })),
+  );
+  document.querySelectorAll("[data-cg-remove]").forEach(
+    (el) =>
+      (el.onclick = () => {
+        if (!confirm("确认移除该约束？")) return;
+        updateConstraintGroup(el.dataset.cgRemove, (group) => {
+          state.reverseConstraints = state.reverseConstraints.filter((_, index) => !group.indexes.includes(index));
+        });
       }),
   );
+}
+function setupConstraintBuilder() {
+  $("cbSearch").oninput = renderConstraintMetrics;
+  $("cbRelation").onchange = renderConstraintValueInputs;
+  $("cbScope").onchange = renderConstraintValueInputs;
+  $("cbYear").onchange = renderConstraintValueInputs;
+  $("cbAdd").onclick = addConstraintGroup;
+  renderConstraintValueInputs();
+}
+function renderReverseConstraints() {
+  const host = $("reverseConstraints");
+  if (!host) return;
+  host.innerHTML =
+    constraintGroups()
+      .map((group) => {
+        const enabled = group.records.some((x) => x.enabled !== false);
+        return `<label class="reverse-row"><input type="checkbox" data-cg-enable="${group.key}" ${enabled ? "checked" : ""}><span>${constraintGroupText(group)}${group.records.length > 1 ? ` · ${group.records.length} 条` : ""}</span><button data-cg-remove="${group.key}">删除</button></label>`;
+      })
+      .join("") || "<small>尚未添加约束</small>";
+  bindConstraintGroupEvents();
   if (state.data) {
     renderNav();
     renderOutputNavigation();
@@ -1094,6 +1211,7 @@ function updateReverseVisibility() {
     item.hidden = isReadOnly() || state.module === "forward" || state.module === "rules" || (state.module === "single" ? index !== 0 : index !== 1);
     item.open = !item.hidden;
   });
+  $("constraintBuilder").hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
   $("calculate").textContent = state.module === "forward" ? "执行测算" : state.module === "single" ? "开始单变量求解" : "开始多输入求解";
   $("calculate").onclick = state.module === "forward" ? calculate : state.module === "single" ? runReverse : runReverseV2;
   $("calculateTop").onclick = $("calculate").onclick;
@@ -1202,6 +1320,7 @@ function parameterCard(id) {
   if (!item) return "";
   const variableIndex = state.reverseVariables.findIndex((entry) => entry.indicator_id === id),
     constraintIndex = state.reverseConstraints.findIndex((entry) => entry.indicator_id === id || entry.indicator_name === item.name),
+    constraintGroup = constraintIndex >= 0 ? constraintGroups().find((group) => group.indexes.includes(constraintIndex)) : null,
     singleVariable = state.module === "single" && variableIndex < 0 && state.selected?.id === id,
     kind = state.module === "forward" ? "" : variableIndex >= 0 || singleVariable ? "variable" : constraintIndex >= 0 ? "constraint" : "";
   const body = state.module === "forward"
@@ -1211,13 +1330,18 @@ function parameterCard(id) {
       : singleVariable
         ? singleVariableCardBody(item)
         : constraintIndex >= 0
-          ? constraintCardBody(state.reverseConstraints[constraintIndex], constraintIndex)
+          ? constraintGroup.records.length > 1
+            ? constraintGroupCardBody(constraintGroup)
+            : constraintCardBody(state.reverseConstraints[constraintIndex], constraintIndex)
           : "<p>选择后可添加为变量或约束</p>";
   const subtitle = kind === "variable" ? `搜索范围 · ${item.unit || ""}` : kind === "constraint" ? `约束目标 · ${item.unit || ""}` : `${item.group} · ${item.unit || ""}`;
   return `<article class="work-card ${kind} ${state.selected?.id === id ? "selected" : ""}" draggable="true" data-card="${id}"><div class="work-card-head">${kind ? `<span class="card-kind">${kind === "variable" ? "变量" : "约束"}</span>` : ""}<div><h3>${item.name}</h3><small>${subtitle}</small></div><span class="spacer"></span><button data-open-card="${id}">高级</button><button data-remove-card="${id}">×</button></div><div class="work-card-body">${body}</div><div class="work-card-actions"><button data-move="${id}|-1">前移</button><button data-move="${id}|1">后移</button><button data-reset-card="${id}">恢复基准</button></div></article>`;
 }
 function orphanConstraintCard(constraint, index) {
   return `<article class="work-card constraint" data-con-card="${index}"><div class="work-card-head"><span class="card-kind">约束</span><div><h3>${constraint.indicator_name}</h3><small>约束目标 · 未选指标</small></div><span class="spacer"></span><button data-remove-constraint="${index}">×</button></div><div class="work-card-body">${constraintCardBody(constraint, index)}</div></article>`;
+}
+function orphanGroupConstraintCard(group) {
+  return `<article class="work-card constraint" data-con-group="${group.key}"><div class="work-card-head"><span class="card-kind">约束</span><div><h3>${group.records[0].indicator_name}</h3><small>约束目标 · 未选指标 · ${group.records.length} 条记录</small></div><span class="spacer"></span><button data-cg-remove="${group.key}">×</button></div><div class="work-card-body">${constraintGroupCardBody(group)}</div></article>`;
 }
 function guardCardDrag(el) {
   const card = el.closest(".work-card");
@@ -1357,6 +1481,7 @@ function bindCardConfigEvents() {
     renderReverseConstraints();
     renderCardGrid();
   }));
+  bindConstraintGroupEvents();
 }
 function renderCardGrid() {
   if (isReadOnly()) {
@@ -1366,21 +1491,24 @@ function renderCardGrid() {
   const draft = currentDraft();
   const perPage = cardsPerPage();
   const ids = draft.selected.slice(draft.page * perPage, draft.page * perPage + perPage);
+  const orphanGroups = state.module === "forward"
+    ? []
+    : constraintGroups().filter((group) => !ids.some((id) => {
+        const item = state.data.parameters.find((parameter) => parameter.id === id);
+        return item && group.records.some((constraint) => constraint.indicator_id === id || constraint.indicator_name === item.name);
+      }));
+  const hasCards = Boolean(ids.length || orphanGroups.length);
   $("cardGrid").className = `card-grid layout-${draft.cardLayout}`;
   $("editor").hidden = !state.editorOpen;
-  $("cardGrid").hidden = state.editorOpen || !ids.length;
-  $("editorEmpty").hidden = state.editorOpen || Boolean(ids.length);
-  const orphanConstraints = state.module === "forward"
-    ? []
-    : state.reverseConstraints
-      .map((constraint, index) => [constraint, index])
-      .filter(([constraint]) => !ids.some((id) => {
-        const item = state.data.parameters.find((parameter) => parameter.id === id);
-        return item && (constraint.indicator_id === id || constraint.indicator_name === item.name);
-      }));
+  $("cardGrid").hidden = state.editorOpen || !hasCards;
+  $("editorEmpty").hidden = state.editorOpen || hasCards;
   $("cardGrid").innerHTML =
     ids.map((id) => parameterCard(id)).join("") +
-    orphanConstraints.map(([constraint, index]) => orphanConstraintCard(constraint, index)).join("");
+    orphanGroups.map((group) =>
+      group.records.length > 1
+        ? orphanGroupConstraintCard(group)
+        : orphanConstraintCard(group.records[0], group.indexes[0]),
+    ).join("");
   document.querySelectorAll("[data-open-card]").forEach((button) => (button.onclick = () => {
     state.editorOpen = true;
     select(button.dataset.openCard);
@@ -1905,6 +2033,7 @@ async function recalculateScenario(id) {
   }
 }
 setupReverse();
+setupConstraintBuilder();
 ["search", "group", "favorites", "adjusted", "pending"].forEach(
   (id) => ($(id).oninput = renderNav),
 );
