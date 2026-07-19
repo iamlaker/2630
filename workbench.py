@@ -487,10 +487,16 @@ class WorkbenchService:
             scenario_draft = {**scenario_draft, "scenario_type": "reverse_result"}
         status = "valid" if feasible else "reverse_no_feasible"
         reason = "找到满足全部硬约束的单变量可行解" if feasible else "在变量允许范围和搜索次数内未找到满足全部硬约束的解"
+        hit_boundary = abs(result["variable_value"] - lower) <= 1e-12 or abs(result["variable_value"] - upper) <= 1e-12
+        variable_reason = f"单变量求解：该指标是用户指定的唯一求解变量，在 {lower}—{upper} 范围内调整以满足启用约束"
+        if hit_boundary:
+            variable_reason += "；已触及搜索范围边界"
+        if not feasible:
+            variable_reason += "；范围内仍无法满足全部硬约束"
         audit = {"operation": "reverse_calculation", "actor": actor, "occurred_at": _utc_now(), "template_version_id": template_version_id, "rule_publication_id": publication.get("publication_id") if publication else None, "variable": {**variable, "required_value": result["variable_value"]}, "constraints": [item.__dict__ for item in constraints], "search_count": result["search_count"], "result_status": status}
         self.reverse_audit.append(audit)
         self.scenarios.audit(f"reverse:{forward['calculation_details']['calculation_id']}", "reverse_calculation", actor=actor, after=audit, detail=f"status={status}; searches={result['search_count']}")
-        return {**result, "variable": {**variable, "indicator_name": variable_rule["display_name"], "required_value": result["variable_value"], "adjustment": result["variable_value"] - float(variable_indicator["year_values"][year])}, "trust": self._trust(status, template, forward["trust"].get("iterations", 0), forward["trust"].get("final_difference"), forward["trust"].get("final_differences", {}), reason, publication), "calculation_details": {**forward["calculation_details"], "stage": "reverse_completed", "search_count": result["search_count"], "audit": audit}, "scenario_draft": scenario_draft, "task_status": "succeeded"}
+        return {**result, "variable": {**variable, "indicator_name": variable_rule["display_name"], "required_value": result["variable_value"], "adjustment": result["variable_value"] - float(variable_indicator["year_values"][year]), "hit_boundary": hit_boundary, "reason": variable_reason}, "trust": self._trust(status, template, forward["trust"].get("iterations", 0), forward["trust"].get("final_difference"), forward["trust"].get("final_differences", {}), reason, publication), "calculation_details": {**forward["calculation_details"], "stage": "reverse_completed", "search_count": result["search_count"], "audit": audit}, "scenario_draft": scenario_draft, "task_status": "succeeded"}
 
     def _reverse_calculate_v2(self, template_version_id: int, request: dict[str, Any], *, cancel_token: Any = None, progress: Any = None, actor: str = "local-user") -> dict[str, Any]:
         template = self.templates.get_indicator_catalog(template_version_id)
@@ -583,14 +589,31 @@ class WorkbenchService:
         result = search_priority_variables(variables=variables, evaluate=evaluate, max_evaluations=max_evaluations)
         forward = result.pop("forward_result")
         suggestions = []
+        path_by_key: dict[str, list[dict[str, Any]]] = {}
+        for entry in result["adjustment_path"]:
+            path_by_key.setdefault(entry["key"], []).append(entry)
+        min_priority = min(item["priority"] for item in variables)
         for item in sorted(variables, key=lambda variable: (variable["priority"], variable["order"])):
             value = result["variable_values"][item["key"]]
+            hit_boundary = abs(value - item["lower"]) <= 1e-12 or abs(value - item["upper"]) <= 1e-12
+            changed = abs(value - item["baseline"]) > 1e-12
+            entries = path_by_key.get(item["key"], [])
+            if not changed:
+                reason_text = f"优先级 {item['priority']}：保持基准值，未启用"
+            else:
+                head = f"优先级 {item['priority']}：最高优先级，首先启用" if item["priority"] == min_priority else f"优先级 {item['priority']}：更高优先级变量未能满足约束，按优先级启用"
+                notes = []
+                if entries:
+                    notes.append(f"硬约束缺口 {entries[0]['hard_violation_before']:.6g} → {entries[-1]['hard_violation_after']:.6g}")
+                if hit_boundary:
+                    notes.append("已调至允许范围边界")
+                reason_text = "；".join([head, *notes])
             suggestions.append({
                 "rule_id": item["rule"]["rule_id"], "indicator_id": item["key"], "indicator_name": item["rule"]["display_name"],
                 "year": item["year"], "priority": item["priority"], "linkage_strategy": item["linkage_strategy"],
                 "baseline_value": item["baseline"], "suggested_value": value, "required_value": value,
                 "adjustment": value - item["baseline"], "lower": item["lower"], "upper": item["upper"],
-                "hit_boundary": abs(value - item["lower"]) <= 1e-12 or abs(value - item["upper"]) <= 1e-12,
+                "hit_boundary": hit_boundary, "reason": reason_text,
             })
         feasible = result["feasible"]
         scenario_draft = {**forward["scenario_draft"], "scenario_type": "reverse_result"} if feasible else None
@@ -701,9 +724,13 @@ class WorkbenchService:
         versions = self.templates.list_template_versions()
         if not versions:
             raise RuntimeError("没有可用模板，请先导入 Excel 模板")
-        template = self._activity_template(versions)
-        if template_version_id is not None and template["template_version_id"] != template_version_id:
-            raise ValueError("历史模板仅供追溯，不能作为可编辑工作区")
+        activity = self._activity_template(versions)
+        template, read_only = activity, False
+        if template_version_id is not None and activity["template_version_id"] != template_version_id:
+            template = next((item for item in versions if item["template_version_id"] == template_version_id), None)
+            if not template:
+                raise ValueError("模板版本不存在")
+            read_only = True
         catalog = template["indicator_catalog"]
         rules = self.rules.get_active_publication_rules(template["template_version_id"])
         publication = self.rules.get_active_publication(template["template_version_id"]) if hasattr(self.rules, "get_active_publication") else ({"publication_id": "active"} if rules else None)
@@ -720,12 +747,19 @@ class WorkbenchService:
             })
         baseline = {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
         result_rows = self._result_rows(catalog, None, None, rules)
+        if read_only:
+            trust = self._trust("historical_read_only", template, 0, None, {}, "历史模板仅供追溯：数据与规则只读，不能发起新测算", publication)
+            scenario_draft = None
+        else:
+            trust = self._trust("pending_rule_confirmation", template, 0, None, {}, "活动模板尚未发布可用规则集" if not publication else "尚未执行测算")
+            scenario_draft = {"scenario_type": "custom", "template_version_id": template["template_version_id"], "rule_publication_id": publication.get("publication_id") if publication else None, "input_adjustments": {}}
         return {
-            "template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"], "activity": True, "editable": bool(publication)},
+            "template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"], "activity": not read_only, "editable": bool(publication) and not read_only, "read_only": read_only},
+            "templates": [{"id": item["template_version_id"], "version": item["template_version"], "fingerprint": item["template_fingerprint"], "activity": item["template_version_id"] == activity["template_version_id"], "read_only": item["template_version_id"] != activity["template_version_id"]} for item in versions],
             "rule_set": {"active": bool(publication), "publication_id": publication.get("publication_id") if publication else None, "rule_count": len(rules)},
             "parameters": parameters, "baseline_results": baseline, "core_results": self._core_results(baseline, baseline),
-            "details": self._details(catalog, baseline, baseline), "result_rows": result_rows, "display_defaults": self.display_defaults(), "trust": self._trust("pending_rule_confirmation", template, 0, None, {}, "活动模板尚未发布可用规则集" if not publication else "尚未执行测算"),
-            "scenario_draft": {"scenario_type": "custom", "template_version_id": template["template_version_id"], "rule_publication_id": publication.get("publication_id") if publication else None, "input_adjustments": {}},
+            "details": self._details(catalog, baseline, baseline), "result_rows": result_rows, "display_defaults": self.display_defaults(), "trust": trust,
+            "scenario_draft": scenario_draft,
         }
 
     def _activity_template(self, versions: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1077,7 +1111,11 @@ def build_handler(service: WorkbenchService, static: Path, admin_token: str) -> 
                 except Exception as exc: self._send(400, {"error": str(exc)})
                 return
             if path == "/api/workbench":
-                try: self._send(200, service.initialize())
+                try:
+                    query = __import__("urllib.parse", fromlist=["parse_qs"]).parse_qs(urlparse(self.path).query)
+                    template_version_id = int(query["template_version_id"][0]) if "template_version_id" in query else None
+                    self._send(200, service.initialize(template_version_id))
+                except ValueError as exc: self._send(400, {"error": str(exc)})
                 except Exception as exc: self._send(500, {"error": str(exc)})
                 return
             if path == "/api/display-defaults":

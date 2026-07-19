@@ -61,6 +61,18 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn('RULE_ERROR_STATUSES = ["rejected", "unsupported"]', app)
         self.assertIn("x.hit === false", app)
 
+    def test_historical_template_read_only_switch_ui_hooks(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        self.assertIn('id="templateSwitch"', html)
+        self.assertIn('id="templateMode"', html)
+        self.assertIn("renderTemplateSwitch", app)
+        self.assertIn("historical_read_only", app)
+        self.assertIn("isReadOnly()", app)
+        self.assertIn("启用原因", app)
+        self.assertIn(".badge.readonly", css)
+
 
 def rule(name="贷款利率", *, status="confirmed", linkage="independent", pending=False, allowed=(0, 10)):
     return {
@@ -87,6 +99,17 @@ class FakeTemplates:
 
     def get_indicator_catalog(self, template_version_id):
         return self.list_template_versions()[0]
+
+
+class TwoVersionTemplates(FakeTemplates):
+    def list_template_versions(self):
+        return [
+            {"template_version": 1, "template_version_id": 1, "template_fingerprint": "0716-fingerprint", "storage_id": "t0716.xlsx", "indicator_catalog": self.catalog, "worksheet": {"name": "汇总展示表", "index": 2}},
+            {"template_version": 2, "template_version_id": 2, "template_fingerprint": "0717-fingerprint", "storage_id": "t0717.xlsx", "indicator_catalog": self.catalog, "worksheet": {"name": "汇总展示表", "index": 2}},
+        ]
+
+    def get_indicator_catalog(self, template_version_id):
+        return next((item for item in self.list_template_versions() if item["template_version_id"] == template_version_id), None)
 
 
 class FakeRules:
@@ -316,6 +339,61 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(len(detail["history"]), 1)
         self.assertIn("audit", detail)
         self.assertEqual(detail["version_diff"], {})
+
+
+class HistoricalTemplateReadOnlyTests(unittest.TestCase):
+    def service(self, fingerprint="0717-fingerprint"):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "template.xlsx"
+        path.write_bytes(b"template")
+        return WorkbenchService(TwoVersionTemplates(), FakeRules([rule(), rule("存款利率")]), InMemoryWorkbookEngine, Path(directory.name), fingerprint)
+
+    def test_activity_template_is_default_and_lists_switchable_versions(self):
+        data = self.service().initialize()
+        self.assertEqual(data["template"]["fingerprint"], "0717-fingerprint")
+        self.assertTrue(data["template"]["activity"])
+        self.assertFalse(data["template"]["read_only"])
+        historical = next(item for item in data["templates"] if item["fingerprint"] == "0716-fingerprint")
+        self.assertTrue(historical["read_only"])
+        self.assertFalse(historical["activity"])
+        activity = next(item for item in data["templates"] if item["activity"])
+        self.assertEqual(activity["id"], data["template"]["id"])
+
+    def test_historical_template_view_is_read_only(self):
+        service = self.service()
+        service.rules.active = 1  # 历史模板存在活动发布，规则仍只读追溯
+        data = service.initialize(1)
+        self.assertTrue(data["template"]["read_only"])
+        self.assertFalse(data["template"]["activity"])
+        self.assertFalse(data["template"]["editable"])
+        self.assertEqual(data["trust"]["status"], "historical_read_only")
+        self.assertIn("只读", data["trust"]["reason"])
+        self.assertIsNone(data["scenario_draft"])
+        self.assertTrue(data["rule_set"]["active"])
+        self.assertEqual([item["rule_status"] for item in data["parameters"]], ["confirmed", "confirmed"])
+        row = next(item for item in data["result_rows"] if item["name"] == "归母净利润")
+        self.assertEqual(row["values"]["2026"], 100)
+
+    def test_unknown_template_version_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "模板版本不存在"):
+            self.service().initialize(99)
+
+    def test_historical_view_cannot_start_new_calculations(self):
+        service = self.service()
+        with self.assertRaisesRegex(ValueError, "历史模板"):
+            service.start_calculation(1, [{"rule_id": "rule-贷款利率", "indicator_id": "价格假设|贷款利率|107", "values": {"2026": 4.2}}])
+        with self.assertRaisesRegex(ValueError, "历史模板"):
+            service.start_reverse_calculation(1, {"variable": {"rule_id": "rule-贷款利率", "indicator_id": "价格假设|贷款利率|107"}, "constraints": []})
+        with self.assertRaisesRegex(ValueError, "历史模板"):
+            service.save_scenario({"name": "历史场景", "template_version_id": 1, "scenario_type": "custom", "input_adjustments": {}})
+
+    def test_activity_view_stays_editable_with_publication(self):
+        service = self.service()
+        service.rules.active = 2
+        data = service.initialize()
+        self.assertTrue(data["template"]["editable"])
+        self.assertIsNotNone(data["scenario_draft"])
 
 
 class SlowEngine(InMemoryWorkbookEngine):
@@ -823,6 +901,18 @@ class ReverseCalculationTests(unittest.TestCase):
         self.assertEqual(result["trust"]["status"], "reverse_no_feasible")
         self.assertIsNone(result["scenario_draft"])
 
+    def test_variable_result_explains_enable_reason(self):
+        result = self.service().reverse_calculate(1, self.request())
+        self.assertTrue(result["feasible"])
+        self.assertIn("唯一求解变量", result["variable"]["reason"])
+        self.assertFalse(result["variable"]["hit_boundary"])
+
+    def test_infeasible_search_marks_boundary_in_enable_reason(self):
+        result = self.service().reverse_calculate(1, self.request(constraints=[{"indicator_name": "利润", "year": "2026", "kind": "min", "value": 300, "hard": True}]))
+        self.assertFalse(result["feasible"])
+        self.assertTrue(result["variable"]["hit_boundary"])
+        self.assertIn("边界", result["variable"]["reason"])
+
     def test_soft_constraint_reports_deviation(self):
         result = self.service().reverse_calculate(1, self.request(constraints=[
             {"indicator_name": "利润", "year": "2026", "kind": "min", "value": 100, "hard": True},
@@ -927,6 +1017,22 @@ class ReverseCalculationV2Tests(unittest.TestCase):
         self.assertEqual([item["suggested_value"] for item in result["variables"]], [5, 5])
         self.assertTrue(result["searched_ranges"])
         self.assertIsNone(result["scenario_draft"])
+
+    def test_variables_explain_enable_reasons(self):
+        result = self.service(MultiLinearEngine).reverse_calculate(1, self.request_v2())
+        reasons = {item["indicator_name"]: item["reason"] for item in result["variables"]}
+        self.assertIn("最高优先级", reasons["贷款利率"])
+        self.assertIn("硬约束缺口", reasons["贷款利率"])
+        self.assertIn("更高优先级", reasons["存款利率"])
+        self.assertIn("边界", reasons["存款利率"])
+
+    def test_unused_variable_reports_not_enabled_reason(self):
+        request = self.request_v2(constraints=[{"indicator_name": "利润", "year": "2026", "kind": "min", "value": 120, "hard": True}])
+        result = self.service(MultiLinearEngine).reverse_calculate(1, request)
+        self.assertTrue(result["feasible"])
+        deposit = next(item for item in result["variables"] if item["indicator_name"] == "存款利率")
+        self.assertEqual(deposit["suggested_value"], 2)
+        self.assertIn("未启用", deposit["reason"])
 
     def test_soft_constraint_deviation_and_reverse_result_save(self):
         request = self.request_v2(constraints=[

@@ -18,18 +18,34 @@ const state = {
   autoTimer: null,
   newestDraftPending: false,
   warmHealthy: null,
+  booted: false,
+  activityWorkspace: null,
 };
 const $ = (id) => document.getElementById(id),
   years = [2026, 2027, 2028, 2029, 2030];
-async function load() {
-  const response = await fetch("/api/workbench");
-  state.data = await response.json();
-  if (!response.ok) throw Error(state.data.error || "工作台加载失败");
-  $("templateMeta").textContent =
-    `活动模板 V${state.data.template.version} · ${state.data.template.fingerprint.slice(0, 10)}`;
-  state.persisted.shared.templateVersionId = state.data.template.id;
+function isReadOnly() {
+  return Boolean(state.data?.template?.read_only);
+}
+async function load(templateVersionId = null) {
+  const response = await fetch(
+    templateVersionId
+      ? `/api/workbench?template_version_id=${templateVersionId}`
+      : "/api/workbench",
+  );
+  const data = await response.json();
+  if (!response.ok) throw Error(data.error || "工作台加载失败");
+  state.data = data;
+  state.reverseResult = null;
+  state.comparison = null;
+  stashActivityWorkspace();
+  renderTemplateSwitch();
+  $("templateMeta").textContent = isReadOnly()
+    ? `历史模板 V${state.data.template.version} · ${state.data.template.fingerprint.slice(0, 10)} · 只读`
+    : `活动模板 V${state.data.template.version} · ${state.data.template.fingerprint.slice(0, 10)}`;
+  if (!isReadOnly())
+    state.persisted.shared.templateVersionId = state.data.template.id;
   $("engineMode").value = state.persisted.shared.engineMode || "warm_com";
-  if (!state.persisted.restored) {
+  if (!state.booted && !state.persisted.restored) {
     state.persisted.drafts.forward.selected = [...(state.data.display_defaults?.inputs || [])];
     WorkbenchState.MODULES.filter((module) => module !== "rules").forEach((module) => {
       state.persisted.drafts[module].outputSelection = [...(state.data.display_defaults?.outputs || [])];
@@ -39,11 +55,7 @@ async function load() {
   $("group").innerHTML =
     '<option value="">全部分组</option>' +
     groups.map((x) => `<option>${x}</option>`).join("");
-  const blocked = !state.data.rule_set.active;
-  $("workspaceNotice").hidden = !blocked;
-  $("workspaceNotice").textContent = blocked
-    ? "0717 活动模板尚未发布规则集。当前仅可查看基准值；请先在规则集维护中完成确认与激活。"
-    : "";
+  applyTemplateMode();
   setCalculateEnabled();
   renderNav();
   renderTrust(state.data);
@@ -52,7 +64,73 @@ async function load() {
   renderOutputNavigation();
   renderTrace(state.data.calculation_details);
   renderReverseMetrics();
-  initializeUnifiedWorkbench();
+  $("exportReverse").disabled = true;
+  $("exportComparison").disabled = true;
+  if (state.selected && !isReadOnly()) select(state.selected.id);
+  if (!state.booted) {
+    state.booted = true;
+    initializeUnifiedWorkbench();
+  }
+}
+function stashActivityWorkspace() {
+  if (isReadOnly() && !state.activityWorkspace) {
+    state.activityWorkspace = {
+      edits: state.edits,
+      constraints: state.reverseConstraints,
+      variables: state.reverseVariables,
+      selected: state.selected,
+    };
+    state.edits = {};
+    state.reverseConstraints = [];
+    state.reverseVariables = [];
+    state.selected = null;
+  } else if (!isReadOnly() && state.activityWorkspace) {
+    state.edits = state.activityWorkspace.edits;
+    state.reverseConstraints = state.activityWorkspace.constraints;
+    state.reverseVariables = state.activityWorkspace.variables;
+    state.selected = state.activityWorkspace.selected;
+    state.activityWorkspace = null;
+  }
+}
+function applyTemplateMode() {
+  const readOnly = isReadOnly(),
+    blocked = !readOnly && !state.data.rule_set.active;
+  $("workspaceNotice").hidden = !(blocked || readOnly);
+  $("workspaceNotice").textContent = readOnly
+    ? `历史模板 V${state.data.template.version} 仅供追溯：数据与规则只读，不能发起新测算。`
+    : blocked
+      ? "0717 活动模板尚未发布规则集。当前仅可查看基准值；请先在规则集维护中完成确认与激活。"
+      : "";
+  ["saveScenario", "resetOne"].forEach((id) => {
+    $(id).disabled = readOnly;
+  });
+  updateReverseVisibility();
+}
+function renderTemplateSwitch() {
+  const templates = state.data?.templates || [];
+  $("templateSwitch").innerHTML = templates
+    .map(
+      (item) =>
+        `<option value="${item.id}" ${item.id === state.data.template.id ? "selected" : ""}>模板 V${item.version} · ${item.fingerprint.slice(0, 10)}${item.activity ? "（活动）" : "（历史只读）"}</option>`,
+    )
+    .join("");
+  $("templateSwitch").disabled = templates.length < 2 || Boolean(state.task);
+  $("templateMode").hidden = !isReadOnly();
+}
+async function switchTemplate(id) {
+  if (state.task || !state.data || id === state.data.template.id) {
+    renderTemplateSwitch();
+    return;
+  }
+  const target = (state.data.templates || []).find((item) => item.id === id);
+  if (!target) return renderTemplateSwitch();
+  try {
+    await load(target.activity ? null : id);
+    loadScenarios();
+  } catch (error) {
+    alert(error.message);
+    renderTemplateSwitch();
+  }
 }
 const RULE_ERROR_STATUSES = ["rejected", "unsupported"];
 function activeReverseConstraints() {
@@ -160,6 +238,7 @@ function renderNav() {
 }
 function canEdit(item) {
   return Boolean(
+    !isReadOnly() &&
     state.data?.rule_set?.active &&
     item?.rule &&
     item.rule.confirmation_status === "confirmed" &&
@@ -206,6 +285,7 @@ function select(id) {
     2,
   );
   renderNav();
+  if (isReadOnly()) return;
   const draft = currentDraft();
   if (!draft.selected.includes(id)) draft.selected.push(id);
   draft.cardOrder = [...draft.selected];
@@ -288,7 +368,9 @@ function payload() {
 }
 function setCalculateEnabled() {
   const enabled = Boolean(
-    state.data?.rule_set?.active && Object.keys(state.edits).length,
+    !isReadOnly() &&
+    state.data?.rule_set?.active &&
+    Object.keys(state.edits).length,
   );
   $("calculate").disabled = !enabled;
   $("calculateTop").disabled = !enabled;
@@ -301,6 +383,7 @@ const STATUS_LABELS = {
   engine_difference: "引擎差异",
   calculation_failed: "计算失败",
   cancelled: "已取消",
+  historical_read_only: "历史只读",
 };
 const TERMINAL = ["succeeded", "failed", "cancelled", "cycle_not_converged"];
 const STAGE_LABELS = {
@@ -326,12 +409,15 @@ function setRunning(running) {
   ["calculate", "calculateTop"].forEach((id) => {
     $(id).disabled =
       running ||
+      isReadOnly() ||
       !state.data?.rule_set?.active ||
       !Object.keys(state.edits).length;
   });
   $("taskProgress").hidden = !running;
+  if (state.data?.templates) renderTemplateSwitch();
 }
 async function calculate() {
+  if (isReadOnly()) return alert("历史模板只读，不能发起新测算");
   if (
     !state.data.rule_set.active ||
     !Object.keys(state.edits).length ||
@@ -415,7 +501,7 @@ async function poll() {
         (data.variables || [data.variable])
           .map(
             (x) =>
-              `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${x.suggested_value ?? x.required_value}</div><div class="years-mini">调整 ${x.adjustment} · ${x.hit_boundary ? "触及边界" : "范围内"}</div></article>`,
+              `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${x.suggested_value ?? x.required_value}</div><div class="years-mini">调整 ${x.adjustment} · ${x.hit_boundary ? "触及边界" : "范围内"}</div>${x.reason ? `<div class="years-mini reason">启用原因：${x.reason}</div>` : ""}</article>`,
           )
           .join("") +
         `<article class="card"><h3>搜索摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${data.soft_deviation}</div></article>` +
@@ -750,6 +836,7 @@ function renderReverseConstraints() {
   }
 }
 async function runReverse() {
+  if (isReadOnly()) return alert("历史模板只读，不能发起反向测算");
   if (
     !state.selected?.rule ||
     !state.reverseConstraints.some((x) => x.enabled) ||
@@ -854,6 +941,7 @@ function renderReverseVariables() {
   if (state.data) renderNav();
 }
 async function runReverseV2() {
+  if (isReadOnly()) return alert("历史模板只读，不能发起反向测算");
   if (!state.reverseVariables.length || !state.reverseConstraints.some((x) => x.enabled) || state.task)
     return alert("请添加可调变量并启用至少一个目标约束");
   if (state.reverseVariables.some((x) => !Number.isFinite(x.initial) || !Number.isFinite(x.lower) || !Number.isFinite(x.upper) || x.initial < x.lower || x.initial > x.upper || x.lower > x.upper || !Number.isFinite(x.priority)))
@@ -906,9 +994,9 @@ function syncReverseDraft() {
 
 function loadModuleDraft(module) {
   const draft = currentDraft(module);
-  state.edits = draft.edits || {};
-  state.reverseConstraints = draft.constraints || [];
-  state.reverseVariables = draft.variables || [];
+  state.edits = isReadOnly() ? {} : draft.edits || {};
+  state.reverseConstraints = isReadOnly() ? [] : draft.constraints || [];
+  state.reverseVariables = isReadOnly() ? [] : draft.variables || [];
   const selectedId = draft.selected[draft.page * 6] || draft.selected[0];
   if (selectedId && state.data.parameters.some((item) => item.id === selectedId)) select(selectedId);
   else {
@@ -926,8 +1014,10 @@ function loadModuleDraft(module) {
 
 function switchModule(module) {
   if (!WorkbenchState.MODULES.includes(module)) return;
-  currentDraft().edits = state.edits;
-  syncReverseDraft();
+  if (!isReadOnly()) {
+    currentDraft().edits = state.edits;
+    syncReverseDraft();
+  }
   state.module = module;
   state.persisted.activeModule = module;
   document.querySelectorAll("[data-module]").forEach((button) => button.classList.toggle("active", button.dataset.module === module));
@@ -950,7 +1040,7 @@ function switchModule(module) {
 
 function updateReverseVisibility() {
   document.querySelectorAll("details.reverse").forEach((item, index) => {
-    item.hidden = state.module === "forward" || state.module === "rules" || (state.module === "single" ? index !== 0 : index !== 1);
+    item.hidden = isReadOnly() || state.module === "forward" || state.module === "rules" || (state.module === "single" ? index !== 0 : index !== 1);
     item.open = !item.hidden;
   });
   $("calculate").textContent = state.module === "forward" ? "执行测算" : state.module === "single" ? "开始单变量求解" : "开始多输入求解";
@@ -959,6 +1049,10 @@ function updateReverseVisibility() {
 }
 
 function renderCardPages() {
+  if (isReadOnly()) {
+    $("cardPages").innerHTML = "";
+    return;
+  }
   const draft = currentDraft();
   const count = Math.max(1, Math.ceil(draft.selected.length / 6));
   draft.page = Math.min(draft.page, count - 1);
@@ -973,6 +1067,10 @@ function renderCardPages() {
 }
 
 function renderCardGrid() {
+  if (isReadOnly()) {
+    $("cardGrid").hidden = true;
+    return;
+  }
   const draft = currentDraft();
   const ids = draft.selected.slice(draft.page * 6, draft.page * 6 + 6);
   $("cardGrid").hidden = !ids.length;
@@ -1420,6 +1518,7 @@ function renderComparisonDetails() {
     .join("");
 }
 async function saveScenario() {
+  if (isReadOnly()) { alert("历史模板只读，不能保存新场景"); return false; }
   const name = $("scenarioName").value.trim();
   if (!name) { alert("请输入场景名称"); return false; }
   const draft = state.data?.scenario_draft || {};
@@ -1559,6 +1658,8 @@ $("detailSearch").oninput = () =>
   state.comparison
     ? renderComparisonDetails()
     : renderDetails(filteredResultRows());
+$("templateSwitch").onchange = () =>
+  switchTemplate(Number($("templateSwitch").value));
 $("outputSearch").oninput = renderOutputNavigation;
 ["comparisonYear", "comparisonGroup", "comparisonScenario"].forEach(
   (id) => ($(id).oninput = renderComparisonDetails),
