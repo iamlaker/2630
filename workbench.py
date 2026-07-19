@@ -1055,9 +1055,7 @@ def create_runtime(root: Path) -> WorkbenchService:
     return WorkbenchService(template_service, rule_service, ExcelComWorkbookEngine, data / "templates", ACTIVITY_TEMPLATE_FINGERPRINT, scenario_store, default_engine_mode=os.environ.get("WORKBENCH_ENGINE_MODE", "cold_com"), warm_timeout_seconds=float(os.environ.get("WORKBENCH_WARM_TIMEOUT_SECONDS", "60")))
 
 
-def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> None:
-    service, static, admin_token = create_runtime(root), root / "web", admin_token or os.environ.get("RULE_ADMIN_TOKEN") or secrets.token_urlsafe(24)
-    print(f"管理员令牌：{admin_token}")
+def build_handler(service: WorkbenchService, static: Path, admin_token: str) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def _is_admin(self) -> bool:
             return f"rule_admin_session={admin_token}" in self.headers.get("Cookie", "")
@@ -1072,6 +1070,8 @@ def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> N
                 return
         def do_GET(self):
             path = urlparse(self.path).path
+            if path == "/api/admin/session":
+                self._send(200, {"admin": self._is_admin()}); return
             if path == "/api/rule-admin":
                 try: self._send(200, service.rule_admin_bootstrap())
                 except Exception as exc: self._send(400, {"error": str(exc)})
@@ -1189,8 +1189,14 @@ def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> N
             except ValueError as exc: self._send(400, {"error": str(exc)})
             except Exception as exc: self._send(500, {"error": str(exc)})
         def log_message(self, format, *args): print(format % args)
+    return Handler
+
+
+def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> None:
+    service, static, admin_token = create_runtime(root), root / "web", admin_token or os.environ.get("RULE_ADMIN_TOKEN") or secrets.token_urlsafe(24)
+    print(f"管理员令牌：{admin_token}")
     print(f"工作台已启动：http://{host}:{port}")
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+    ThreadingHTTPServer((host, port), build_handler(service, static, admin_token)).serve_forever()
 
 
 if __name__ == "__main__":

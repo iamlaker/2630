@@ -33,6 +33,11 @@
 .context-strip .dirty { margin-left: auto; color: var(--amber); }
 .workspace { min-height: 0; display: grid; grid-template-columns: var(--left-pane) 6px minmax(390px, 1fr) 6px var(--right-pane); padding: 10px; gap: 0; }
 .pane { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.left-pane { grid-column: 1; grid-row: 1; }
+.pane-resizer[data-resize="left"] { grid-column: 2; grid-row: 1; }
+.center-pane { grid-column: 3; grid-row: 1; }
+.pane-resizer[data-resize="right"] { grid-column: 4; grid-row: 1; }
+.right-pane { grid-column: 5; grid-row: 1; }
 .pane-resizer { cursor: col-resize; position: relative; }
 .pane-resizer::after { content: ""; position: absolute; inset: 0 2px; background: #cbd6d1; border-radius: 5px; }
 .pane-resizer:hover::after { background: #799f97; }
@@ -101,8 +106,9 @@
 .result-table td.positive { color: #47765f; }
 .col-resizer { position: absolute; right: -3px; top: 0; width: 7px; height: 100%; cursor: col-resize; }
 .col-resizer::after { content: ""; position: absolute; right: 3px; top: 22%; height: 56%; border-right: 1px solid #b8c5c0; }
-.rules-pane { grid-column: 1 / -1; min-height: 0; }
-.rules-pane { display: grid; grid-template-rows: auto 1fr; }.rules-toolbar { display: flex; gap: 10px; align-items: center; padding: 6px; }.rules-toolbar span { color: var(--muted); font-size: 11px; }.rules-pane iframe { width: 100%; height: 100%; border: 1px solid var(--line); background: white; }
+.rules-pane { grid-column: 3; grid-row: 1; min-height: 0; padding: 0; }
+.rules-pane .rules-hint { color: var(--muted); font-size: 11px; }
+.rules-pane iframe { flex: 1; min-height: 0; width: 100%; border: 1px solid var(--line); background: white; }
 .mobile-pane-tabs { display: none; }
 
 @media (max-width: 1100px) {
@@ -127,8 +133,7 @@
   .workspace[data-mobile-pane="left"] .left-pane { display: flex; }
   .workspace[data-mobile-pane="center"] .center-pane { display: flex; }
   .workspace[data-mobile-pane="right"] .right-pane { display: flex; }
-  .workspace .rules-pane:not([hidden]) { display: block; height: 100%; }
-  .workspace:has(.rules-pane:not([hidden])) .pane { display: none; }
+  .workspace[data-mobile-pane="center"] .rules-pane:not([hidden]) { display: flex; height: 100%; }
   .years, .years.layout-horizontal { display: flex; overflow-x: auto; }
   .card-grid { display: flex; overflow-x: auto; }.work-card { min-width: 270px; }
   .year, .years.layout-horizontal .year { min-width: 230px; display: block; }

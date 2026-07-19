@@ -933,8 +933,7 @@ function switchModule(module) {
   document.querySelectorAll("[data-module]").forEach((button) => button.classList.toggle("active", button.dataset.module === module));
   const rules = module === "rules";
   $("rulesPane").hidden = !rules;
-  ["leftPane", "centerPane", "rightPane"].forEach((id) => ($(id).hidden = rules));
-  document.querySelectorAll(".pane-resizer").forEach((item) => (item.hidden = rules));
+  $("centerPane").hidden = rules;
   $("forwardMode").hidden = module !== "forward";
   $("calculateTop").hidden = rules;
   $("layoutToggle").hidden = module !== "forward";

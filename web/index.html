@@ -64,7 +64,10 @@
           <details open><summary>C–J 完整指标结果</summary><div class="detail-filters"><input id="detailSearch" placeholder="搜索指标" /><select id="comparisonYear"><option value="">全部年度</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option></select><select id="comparisonGroup"><option value="">全部分组</option></select><select id="comparisonScenario"><option value="">全部场景</option></select></div><div id="details" class="details"></div></details>
           <details><summary>循环收敛与计算日志</summary><div id="calculationTrace" class="trace">尚未执行测算</div></details>
         </aside>
-        <section id="rulesPane" class="rules-pane" hidden><div class="rules-toolbar"><button id="saveDisplayDefaults">管理员：保存当前展示项为全局默认</button><span>未登录管理员时保持只读</span></div><iframe id="rulesFrame" title="规则集维护" src="/rules.html?embedded=1"></iframe></section>
+        <section id="rulesPane" class="pane rules-pane" hidden>
+          <div class="center-toolbar"><strong>规则维护</strong><span class="spacer"></span><span class="rules-hint">普通用户只读；管理员可在页签内登录维护</span><button id="saveDisplayDefaults">管理员：保存当前展示项为全局默认</button></div>
+          <iframe id="rulesFrame" title="规则集维护" src="/rules.html?embedded=1"></iframe>
+        </section>
       </main>
     </div>
     <script src="/workbench-state.js"></script>

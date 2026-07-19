@@ -6,3 +6,10 @@
 .embedded-readonly article button { pointer-events: none; opacity: .7; }
 .embedded-readonly article input,
 .embedded-readonly article select { background: #f1f4f3; }
+.embedded .standalone-only { display: none !important; }
+.embedded-readonly #login { background: #fff; border-bottom: 1px solid var(--line); padding: 8px 12px; }
+.embedded-readonly #login h1,
+.embedded-readonly #login p { display: none; }
+.embedded-readonly #loginForm { display: flex; gap: 8px; align-items: center; }
+.embedded-readonly #adminToken { flex: 1; max-width: 240px; }
+.embedded-readonly #loginError { color: var(--red); font-size: 12px; }
