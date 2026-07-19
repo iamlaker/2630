@@ -60,7 +60,7 @@ async function load(templateVersionId = null) {
   setCalculateEnabled();
   renderNav();
   renderTrust(state.data);
-  renderCards(state.data.core_results);
+  setCards("");
   renderDetails(state.data.result_rows || state.data.details);
   renderOutputNavigation();
   renderTrace(state.data.calculation_details);
@@ -510,7 +510,7 @@ async function poll() {
       $("exportReverse").disabled = !data.scenario_draft;
       renderTrust(data);
       renderTrace(data.calculation_details);
-      $("cards").innerHTML =
+      setCards(
         (data.variables || [data.variable])
           .map(
             (x) =>
@@ -523,13 +523,14 @@ async function poll() {
             (x) =>
               `<article class="card"><h3>${x.indicator_name}</h3><div class="metric">${x.hit ? "命中" : "未命中"}</div><div class="years-mini">实际 ${x.actual ?? "—"} · 偏差 ${x.deviation}</div></article>`,
           )
-          .join("");
+          .join(""),
+      );
       renderNav();
       renderOutputNavigation();
     } else {
       state.data = { ...state.data, ...data };
       renderTrust(data);
-      renderCards(data.core_results);
+      setCards("");
       state.data.result_rows = data.result_rows || state.data.result_rows;
       renderDetails(state.data.result_rows || data.details);
       renderTrace(data.calculation_details);
@@ -667,36 +668,68 @@ function renderTrust(data) {
   $("trust").innerHTML =
     `<strong>${t.reason || data.reason || "尚未计算"}</strong><small>循环 ${t.iterations ?? 0} 次 · 最大差异 ${t.final_difference ?? "—"}<br>活动发布 ${t.rule_version || data.publication_id || state.data?.rule_set?.publication_id || "未发布"} · ${t.error || "详情可展开查看"}</small>${differenceDetails}`;
 }
-function renderCards(cards = []) {
-  $("cards").innerHTML =
-    cards
-      .map(
-        (card) =>
-          `<article class="card"><h3>${card.name}</h3><div class="metric">${formatResultValue(card.values?.[2030], card.unit) || "—"}</div><div class="years-mini">${years.map((y) => `${y} ${formatResultValue(card.values?.[y], card.unit) || "—"}`).join(" · ")}</div></article>`,
-      )
-      .join("") || '<div class="empty">尚未识别到核心结果</div>';
+function setCards(html) {
+  $("cards").innerHTML = html || "";
+  $("cards").hidden = !html;
 }
 function renderDetails(details = []) {
   const query = $("detailSearch").value.toLowerCase();
-  const rows = details.filter((x) => !query || x.name.toLowerCase().includes(query));
+  const entries = details.filter((entry) => entry.kind === "header" || !query || entry.name.toLowerCase().includes(query));
   const columns = ["name", "2025", "2026", "2027", "2028", "2029", "2030", "five_year_change", "cagr"];
   const labels = ["指标", "2025", "2026", "2027", "2028", "2029", "2030", "五年变化", "CAGR"];
   const widths = currentDraft().columnWidths;
-  $("details").innerHTML = `<div class="result-scroll"><table class="result-table"><colgroup>${widths.map((width) => `<col style="width:${width}px">`).join("")}</colgroup><thead><tr>${labels.map((label, index) => `<th>${label}<span class="col-resizer" data-col="${index}"></span></th>`).join("")}</tr></thead><tbody>${rows.map((row) => resultRow(row, columns)).join("")}</tbody></table></div>`;
+  $("details").innerHTML = `<div class="result-scroll"><table class="result-table"><colgroup>${widths.map((width) => `<col style="width:${width}px">`).join("")}</colgroup><thead><tr>${labels.map((label, index) => `<th>${label}<span class="col-resizer" data-col="${index}"></span></th>`).join("")}</tr></thead><tbody>${renderDetailEntries(entries, columns, query)}</tbody></table></div>`;
   setupColumnResize();
+  document.querySelectorAll("[data-result-section]").forEach((el) => (el.onclick = () => {
+    const draft = currentDraft();
+    draft.resultSections[el.dataset.resultSection] = !(draft.resultSections[el.dataset.resultSection] ?? true);
+    persistWorkbench();
+    renderDetails(details);
+  }));
+  document.querySelectorAll("[data-rstar]").forEach((el) => (el.onclick = (event) => {
+    event.stopPropagation();
+    const id = el.dataset.rstar;
+    state.persisted.resultFavorites[id] = !state.persisted.resultFavorites[id];
+    persistWorkbench();
+    renderDetails(details);
+  }));
+}
+
+// 按 sheet 原序渲染 标题节 + 指标行；折叠的节隐藏其下内容（星标行留外），搜索时忽略折叠
+function renderDetailEntries(entries, columns, query) {
+  const draft = currentDraft();
+  const stack = [];
+  return entries
+    .map((entry) => {
+      if (entry.kind === "header") {
+        while (stack.length && stack[stack.length - 1].level >= entry.level) stack.pop();
+        const hidden = stack.some((item) => item.collapsed);
+        const key = `${entry.title}@${entry.row}`;
+        const collapsed = !query && (draft.resultSections[key] ?? true) === false;
+        stack.push({ level: entry.level, collapsed });
+        if (hidden) return "";
+        return `<tr class="section-head level-${entry.level}" data-result-section="${key}"><td colspan="${columns.length}">${collapsed ? "+" : "−"} ${entry.title}</td></tr>`;
+      }
+      const hidden = stack.some((item) => item.collapsed);
+      if (hidden && !state.persisted.resultFavorites[entry.id]) return "";
+      return resultRow(entry, columns);
+    })
+    .join("");
 }
 
 function resultRow(row, columns) {
   const constrained = state.reverseConstraints.some((x) => x.indicator_name === row.name);
   const changed = resultRowChanged(row);
+  const starred = state.persisted.resultFavorites[row.id];
   const classes = [constrained ? "constraint" : "", changed ? "changed" : ""].filter(Boolean).join(" ");
   const markers = `${constrained ? " · 已设约束" : ""}${changed ? " · 较基准变化" : ""}`;
+  const indent = /^(其中|——|\s)/.test(row.name) ? " indent" : "";
   const cells = columns.slice(1).map((column) => {
     const value = row.values?.[column];
     const cls = resultValueClass(value, column);
     return `<td${cls ? ` class="${cls}"` : ""}>${formatResultValue(value, column === "cagr" ? "%" : row.unit, row.precision)}</td>`;
   }).join("");
-  return `<tr${classes ? ` class="${classes}"` : ""}><td title="${row.name}"><strong>${row.name}</strong><small>${row.unit || ""} · ${row.group || ""}${markers}</small></td>${cells}</tr>`;
+  return `<tr${classes ? ` class="${classes}"` : ""}><td title="${row.name}"><span class="star ${starred ? "on" : ""}" data-rstar="${row.id}">${starred ? "★" : "☆"}</span><strong class="name${indent}">${row.name}</strong><small>${markers}</small></td>${cells}</tr>`;
 }
 
 function resultRowChanged(row) {
@@ -1431,7 +1464,7 @@ function outputStateDots(row) {
 }
 function renderOutputNavigation() {
   const query = ($("outputSearch")?.value || "").toLowerCase();
-  const rows = state.data?.result_rows || [];
+  const rows = (state.data?.result_rows || []).filter((row) => row.kind !== "header");
   const groups = {};
   rows.filter((row) => !query || row.name.toLowerCase().includes(query)).forEach((row) => (groups[row.group || "未分组"] ??= []).push(row));
   $("outputGroups").innerHTML = Object.entries(groups).map(([group, items]) => {
@@ -1453,7 +1486,8 @@ function renderOutputNavigation() {
 
 function filteredResultRows() {
   const rows = state.data?.result_rows || [];
-  return currentDraft().outputSelection.length ? rows.filter((row) => currentDraft().outputSelection.includes(row.id)) : rows;
+  const selection = currentDraft().outputSelection;
+  return selection.length ? rows.filter((row) => row.kind === "header" || selection.includes(row.id)) : rows;
 }
 
 async function protectDraftBeforeSwitch() {
@@ -1557,38 +1591,6 @@ const SCENARIO_TYPE_LABELS = {
   custom: "自定义",
   reverse_result: "反向测算",
 };
-const CORE_CARD_ALIASES = {
-  利润: ["归母净利润", "净利润", "利润"],
-  营业收入: ["营业收入", "营业净收入", "营收"],
-  净息差: ["净息差", "净利息收入", "利息净收入"],
-  总资产: ["并表口径总资产", "资产总额", "总资产"],
-  "ROE / RAROC": ["roe", "净资产收益率", "raroc"],
-  资本充足率: ["资本充足率", "核心一级资本充足率"],
-  RWA: ["风险加权资产", "rwa"],
-  LCR: ["流动性覆盖率", "lcr"],
-  NSFR: ["净稳定资金比例", "nsfr"],
-};
-function cardsFromSnapshot(snapshot) {
-  return Object.entries(CORE_CARD_ALIASES)
-    .map(([label, aliases]) => {
-      const match = matchCoreName(Object.keys(snapshot), aliases);
-      return match
-        ? { name: label, source_name: match, unit: unitForIndicator(match), values: snapshot[match] }
-        : null;
-    })
-    .filter(Boolean);
-}
-function matchCoreName(names, aliases) {
-  for (const alias of aliases) {
-    const hit = names.find((name) => name.toLowerCase() === alias.toLowerCase());
-    if (hit) return hit;
-  }
-  for (const alias of aliases) {
-    const hit = names.find((name) => name.toLowerCase().includes(alias.toLowerCase()));
-    if (hit) return hit;
-  }
-  return null;
-}
 function unitForIndicator(name) {
   const param = (state.data?.parameters || []).find((p) => p.name === name);
   if (param?.unit) return param.unit;
@@ -1621,9 +1623,6 @@ async function restoreScenarioContext(id) {
   });
   currentDraft().edits = state.edits;
   currentDraft().calculatedUnsaved = false;
-  if (scenario.calculation_result_snapshot) {
-    renderCards(cardsFromSnapshot(scenario.calculation_result_snapshot));
-  }
   persistWorkbench(); renderNav(); renderCardGrid(); updateDraftStatus();
 }
 function renderScenarios() {
@@ -1703,13 +1702,14 @@ async function startComparison() {
 function renderComparison(data) {
   $("exportComparison").disabled = false;
   renderTrust(data);
-  $("cards").innerHTML =
+  setCards(
     data.core_results
       .map(
         (card) =>
           `<article class="card comparison-card"><h3>${card.name}</h3>${card.scenarios.map((sc) => `<div class="scenario-value ${sc.values ? "" : "comparison-failure"}"><strong>${sc.name}</strong>${sc.values ? `${formatResultValue(sc.values["2030"], card.unit) || "—"} <small>Δ ${formatResultValue(sc.differences?.["2030"], card.unit) || "—"}</small>` : "无有效结果"}</div>`).join("")}</article>`,
       )
-      .join("") || '<div class="empty">没有可对比的核心指标</div>';
+      .join(""),
+  );
   $("comparisonGroup").innerHTML =
     '<option value="">全部分组</option>' +
     [...new Set(data.details.map((x) => x.group))]
@@ -1830,7 +1830,6 @@ async function openScenario(id) {
   currentDraft().edits = state.edits;
   persistWorkbench(); updateDraftStatus();
   if (sc.calculation_result_snapshot) {
-    renderCards(cardsFromSnapshot(sc.calculation_result_snapshot));
     renderDetails(
       state.data.details.map((d) =>
         sc.calculation_result_snapshot[d.name]

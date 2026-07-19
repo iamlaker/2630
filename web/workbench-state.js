@@ -15,6 +15,7 @@
       page: 0,
       cardLayout: "horizontal",
       openGroups: {},
+      resultSections: {},
       outputSelection: [],
       columnWidths: [116, 66, 66, 66, 66, 66, 66, 84, 72],
     };
@@ -34,6 +35,7 @@
         degradationReason: "",
       },
       favorites: {},
+      resultFavorites: {},
       drafts: Object.fromEntries(MODULES.map((module) => [module, emptyDraft()])),
       paneWidths: Object.fromEntries(MODULES.map((module) => [module, { ...DEFAULT_PANES }])),
     };
@@ -46,6 +48,7 @@
     state.mobilePane = ["left", "center", "right"].includes(saved.mobilePane) ? saved.mobilePane : "center";
     state.shared = { ...state.shared, ...(saved.shared || {}) };
     state.favorites = saved.favorites || {};
+    state.resultFavorites = saved.resultFavorites || {};
     MODULES.forEach((module) => {
       state.drafts[module] = { ...emptyDraft(), ...(saved.drafts?.[module] || {}) };
       state.paneWidths[module] = { ...DEFAULT_PANES, ...(saved.paneWidths?.[module] || {}) };

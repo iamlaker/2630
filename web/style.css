@@ -74,6 +74,11 @@
 .page-dot { border-radius: 12px; padding: 3px 8px; font-size: 10px; }
 .page-dot.active { background: #173b38; color: white; }
 .editor { padding: 12px; overflow: auto; min-height: 0; }
+.result-table .section-head td { font-weight: 600; color: var(--ink); background: #eef3f0; cursor: pointer; user-select: none; }
+.result-table .section-head.level-2 td { padding-left: 20px; font-weight: 500; background: #f6f9f7; }
+.result-table td .star { cursor: pointer; color: #c3cbc7; margin-right: 5px; font-size: 12px; }
+.result-table td .star.on { color: var(--amber); }
+.result-table .name.indent { padding-left: 16px; font-weight: 400; }
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 340px)); grid-auto-rows: minmax(230px, 1fr); gap: 10px; padding: 12px; overflow: auto; min-height: 0; }
 .work-card { border: 1px solid var(--line); background: white; min-height: 220px; display: flex; flex-direction: column; }
 .work-card.variable { border-top: 4px solid #879bad; }.work-card.constraint { border-top: 4px solid #9386a7; }

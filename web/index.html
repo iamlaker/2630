@@ -59,7 +59,7 @@
           <div id="taskProgress" class="task-progress" hidden><div id="taskStage">—</div><div id="taskMeta"></div><button id="cancelCalc">取消测算</button></div>
           <div class="output-tools"><button id="engineValidation">引擎验证</button><button id="exportScenario">导出当前结果</button><button id="exportReverse" disabled>导出反向结果</button><button id="exportComparison" disabled>导出对比结果</button></div>
           <div class="output-navigation"><input id="outputSearch" placeholder="搜索输出指标"><div id="outputGroups"></div></div>
-          <div id="cards" class="cards"></div>
+          <div id="cards" class="cards" hidden></div>
           <details class="scenarios"><summary>命名场景</summary><div class="scenario-save"><input id="scenarioName" placeholder="场景名称" /><select id="scenarioType"><option value="custom">自定义</option><option value="baseline">基准</option><option value="optimistic">乐观</option><option value="pessimistic">悲观</option></select><button id="saveScenario">保存</button></div><div class="comparison-actions"><label><input type="checkbox" id="comparisonForce" /> 强制刷新</label><button id="startComparison">开始对比</button></div><div id="scenarioList"></div></details>
           <details open><summary>C–J 完整指标结果</summary><div class="detail-filters"><input id="detailSearch" placeholder="搜索指标" /><select id="comparisonYear"><option value="">全部年度</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option></select><select id="comparisonGroup"><option value="">全部分组</option></select><select id="comparisonScenario"><option value="">全部场景</option></select></div><div id="details" class="details"></div></details>
           <details><summary>循环收敛与计算日志</summary><div id="calculationTrace" class="trace">尚未执行测算</div></details>
