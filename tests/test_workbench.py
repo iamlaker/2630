@@ -73,6 +73,32 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("启用原因", app)
         self.assertIn(".badge.readonly", css)
 
+    def test_card_inline_sliders_and_inline_reverse_config(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 正向卡卡面内嵌五年滑杆：当前值/基准/差异，拖动走既有触发路径
+        self.assertIn("data-card-slide", app)
+        self.assertIn("year-tracks", app)
+        self.assertIn("track-base", app)
+        self.assertIn("applyYearValue", app)
+        self.assertIn("scheduleAutomaticCalculation()", app)
+        # 横/纵滑杆布局切换作用于卡片网格
+        self.assertIn("card-grid layout-", app)
+        self.assertIn(".card-grid.layout-horizontal", css)
+        self.assertIn(".card-grid.layout-vertical", css)
+        self.assertIn("vertical-range", css)
+        # 变量卡卡面内联配置：上下限、范围滑杆、优先级、允许求解器搜索
+        self.assertIn("data-v2c", app)
+        self.assertIn("允许求解器搜索", app)
+        self.assertIn("singleVariable", app)
+        # 约束卡卡面内联配置：年份/关系/目标值/范围滑杆/软硬切换
+        self.assertIn("data-cc", app)
+        self.assertIn("切换为软目标", app)
+        # 恢复基准保留；编辑器降级为高级入口
+        self.assertIn("data-reset-card", app)
+        self.assertIn('id="closeEditor"', html)
+
 
 def rule(name="贷款利率", *, status="confirmed", linkage="independent", pending=False, allowed=(0, 10)):
     return {

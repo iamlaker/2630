@@ -78,8 +78,38 @@
 .work-card.selected { outline: 2px solid #8ab8ae; }
 .work-card-head { display: flex; align-items: flex-start; gap: 7px; padding: 10px; border-bottom: 1px solid #edf1ef; }
 .work-card-head h3 { margin: 0; font-size: 13px; }.work-card-head small { color: var(--muted); }.work-card-head .spacer { flex: 1; }
-.work-card-body { padding: 10px; flex: 1; }.work-card-years { display: grid; gap: 5px; font: 11px Consolas, monospace; }.work-card-year { display: grid; grid-template-columns: 38px 1fr auto; gap: 6px; }
+.work-card-body { padding: 10px; flex: 1; display: flex; flex-direction: column; }
 .work-card-actions { display: flex; gap: 5px; padding: 8px; border-top: 1px solid #edf1ef; }.work-card-actions button { padding: 4px 7px; font-size: 10px; }
+.card-grid .year-tracks { flex: 1; }
+.card-grid.layout-vertical .year-tracks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 4px 8px 8px; }
+.card-grid.layout-vertical .year-track { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.card-grid.layout-vertical .vertical-range { height: 96px; width: 28px; writing-mode: vertical-lr; direction: rtl; accent-color: var(--teal); margin: 4px 0; }
+.card-grid.layout-horizontal .year-tracks { display: flex; flex-direction: column; gap: 2px; padding: 2px 10px 6px; }
+.card-grid.layout-horizontal .year-track { display: grid; grid-template-columns: 34px minmax(70px, 1fr) 52px; grid-template-rows: auto auto; column-gap: 6px; align-items: center; border-top: 1px solid #edf1ef; padding: 4px 0; }
+.card-grid.layout-horizontal .year-track label { grid-row: 1 / 3; }
+.card-grid.layout-horizontal .vertical-range { grid-column: 2; grid-row: 1; width: 100%; margin: 0; accent-color: var(--teal); }
+.card-grid.layout-horizontal .track-value { grid-column: 3; grid-row: 1; }
+.card-grid.layout-horizontal .track-base { grid-column: 2; grid-row: 2; }
+.card-grid.layout-horizontal .delta { grid-column: 3; grid-row: 2; }
+.year-track label { font: 9px Consolas, monospace; color: var(--muted); }
+.year-track .track-value { font: 600 11px Consolas, monospace; }
+.year-track .track-base { font: 9px Consolas, monospace; color: var(--muted); }
+.year-track .delta { font-size: 10px; min-height: 0; }
+.year-track.locked .track-value { color: var(--muted); }
+.card-kind { font-size: 9px; padding: 2px 5px; border-radius: 3px; background: #e4eaf0; color: #667f9b; align-self: flex-start; }
+.work-card.constraint .card-kind { background: #ebe7f0; color: #786d8e; }
+.work-card .constraint-form { display: grid; grid-template-columns: 1fr 62px; gap: 6px; }
+.work-card .constraint-form label { font-size: 10px; color: var(--muted); }
+.work-card .constraint-form input, .work-card .constraint-form select { width: 100%; padding: 5px; margin-top: 2px; }
+.work-card .constraint-value { grid-column: 1 / -1; }
+.work-card .constraint-scale { width: 100%; margin: 8px 0 2px; accent-color: var(--teal); }
+.work-card .constraint-summary { margin-top: 8px; background: var(--teal-soft); color: var(--teal); padding: 7px; font-size: 11px; }
+.work-card.variable .constraint-summary { background: #eceff3; color: #5d6f85; }
+.work-card.constraint .constraint-summary { background: #f0edf4; color: #6f6486; }
+.work-card .constraint-summary input { width: 52px; padding: 2px 4px; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; padding-top: 7px; border-top: 1px solid #edf1ef; color: var(--muted); font-size: 10px; }
+.card-foot button { padding: 3px 7px; font-size: 10px; }
+.card-foot label { display: inline-flex; align-items: center; gap: 4px; }
 .editor-context { display: flex; justify-content: space-between; gap: 12px; }
 .editor-context h2 { font-size: 19px; margin: 2px 0; }
 .editor-context .ruleline { border: 0; align-self: flex-start; }

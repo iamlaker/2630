@@ -11,6 +11,7 @@
       variables: [],
       constraints: [],
       calculatedUnsaved: false,
+      singleVariable: null,
       page: 0,
       cardLayout: "horizontal",
       openGroups: {},
