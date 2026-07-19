@@ -300,7 +300,7 @@ function select(id) {
   const draft = currentDraft();
   if (!draft.selected.includes(id)) draft.selected.push(id);
   draft.cardOrder = [...draft.selected];
-  draft.page = Math.floor(draft.selected.indexOf(id) / 6);
+  draft.page = Math.floor(draft.selected.indexOf(id) / cardsPerPage());
   persistWorkbench();
   renderCardPages();
   renderCardGrid();
@@ -1014,7 +1014,7 @@ function loadModuleDraft(module) {
   state.reverseConstraints = isReadOnly() ? [] : draft.constraints || [];
   state.reverseVariables = isReadOnly() ? [] : draft.variables || [];
   state.editorOpen = false;
-  const selectedId = draft.selected[draft.page * 6] || draft.selected[0];
+  const selectedId = draft.selected[draft.page * cardsPerPage()] || draft.selected[0];
   if (selectedId && state.data.parameters.some((item) => item.id === selectedId)) select(selectedId);
   else state.selected = null;
   renderNav();
@@ -1062,18 +1062,26 @@ function updateReverseVisibility() {
   $("calculateTop").onclick = $("calculate").onclick;
 }
 
+function cardsPerPage() {
+  const grid = $("cardGrid");
+  if (!grid || !grid.clientWidth || !grid.clientHeight) return 6;
+  const columns = Math.max(1, Math.floor((grid.clientWidth - 14) / 250));
+  const rows = Math.max(1, Math.floor((grid.clientHeight - 14) / 240));
+  return columns * rows;
+}
 function renderCardPages() {
   if (isReadOnly()) {
     $("cardPages").innerHTML = "";
     return;
   }
   const draft = currentDraft();
-  const count = Math.max(1, Math.ceil(draft.selected.length / 6));
+  const perPage = cardsPerPage();
+  const count = Math.max(1, Math.ceil(draft.selected.length / perPage));
   draft.page = Math.min(draft.page, count - 1);
   $("cardPages").innerHTML = Array.from({ length: count }, (_, index) => `<button class="page-dot ${index === draft.page ? "active" : ""}" data-page="${index}">屏 ${index + 1}</button>`).join("");
   document.querySelectorAll("[data-page]").forEach((button) => (button.onclick = () => {
     draft.page = Number(button.dataset.page);
-    const id = draft.selected[draft.page * 6];
+    const id = draft.selected[draft.page * cardsPerPage()];
     if (id) select(id);
     persistWorkbench();
     renderCardGrid();
@@ -1318,7 +1326,7 @@ function renderCardGrid() {
     return;
   }
   const draft = currentDraft();
-  const ids = draft.selected.slice(draft.page * 6, draft.page * 6 + 6);
+  const ids = draft.selected.slice(draft.page * cardsPerPage(), draft.page * cardsPerPage() + cardsPerPage());
   $("cardGrid").className = `card-grid layout-${draft.cardLayout}`;
   $("editor").hidden = !state.editorOpen;
   $("cardGrid").hidden = state.editorOpen || !ids.length;
@@ -1928,6 +1936,14 @@ $("outputSearch").oninput = renderOutputNavigation;
 ["comparisonYear", "comparisonGroup", "comparisonScenario"].forEach(
   (id) => ($(id).oninput = renderComparisonDetails),
 );
+let gridResizeTimer = null;
+new ResizeObserver(() => {
+  clearTimeout(gridResizeTimer);
+  gridResizeTimer = setTimeout(() => {
+    renderCardPages();
+    renderCardGrid();
+  }, 150);
+}).observe($("cardGrid"));
 load()
   .then(loadScenarios)
   .catch((error) => {

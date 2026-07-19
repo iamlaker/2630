@@ -71,6 +71,16 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         # 折叠按钮取反有效状态而非简单布尔翻转
         self.assertIn("openGroups[key] = !navGroupOpen(", app)
 
+    def test_card_grid_adaptive_page_size(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 每页卡片数由可用宽/高动态计算，不再硬编码 6
+        self.assertIn("function cardsPerPage()", app)
+        self.assertNotIn("draft.page * 6", app)
+        self.assertIn("ResizeObserver", app)
+        # 网格列随宽度自适应
+        self.assertIn("auto-fill", css)
+
     def test_historical_template_read_only_switch_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
