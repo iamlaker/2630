@@ -81,6 +81,25 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         # 网格列随宽度自适应
         self.assertIn("auto-fill", css)
 
+    def test_output_pane_excel_hierarchy_and_collapsible_results(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        state_js = (self.web / "workbench-state.js").read_text(encoding="utf-8")
+        # 常驻摘要小卡片删除，#cards 仅承载瞬态结果且空时隐藏
+        self.assertNotIn("renderCards(state.data.core_results)", app)
+        self.assertIn('id="cards" class="cards" hidden', html)
+        self.assertIn("function setCards(", app)
+        # 结果表按 Excel 层次分节、节标题可折叠
+        self.assertIn("section-head", app)
+        self.assertIn("data-result-section", app)
+        # 行内不再跟"未知 · 财务结果"式尾巴
+        self.assertNotIn('${row.unit || ""} · ${row.group || ""}', app)
+        # 指标行星标与分节折叠状态持久化
+        self.assertIn("resultFavorites", app)
+        self.assertIn("resultFavorites", state_js)
+        self.assertIn("resultSections", state_js)
+
     def test_historical_template_read_only_switch_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
@@ -145,6 +164,9 @@ class FakeTemplates:
 
     def get_indicator_catalog(self, template_version_id):
         return self.list_template_versions()[0]
+
+    def regenerate_catalog(self, template_version_id, engine):
+        return self.get_indicator_catalog(template_version_id)
 
 
 class TwoVersionTemplates(FakeTemplates):
@@ -243,6 +265,41 @@ class WorkbenchTests(unittest.TestCase):
         row = next(item for item in result["result_rows"] if item["name"] == "归母净利润")
         self.assertEqual(row["values"]["2026"], 110)
         self.assertEqual(row["baseline_values"]["2026"], 100)
+
+    def test_result_rows_interleave_section_headers_in_sheet_order(self):
+        class SectionTemplates(FakeTemplates):
+            def list_template_versions(self):
+                return [{
+                    **super().list_template_versions()[0],
+                    "sections": [
+                        {"row": 4, "title": "一、盈利结果", "level": 1},
+                        {"row": 5, "title": "（一）并表口径", "level": 2},
+                    ],
+                }]
+
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        service = WorkbenchService(SectionTemplates(), FakeRules([rule(), rule("存款利率")]), InMemoryWorkbookEngine, Path(directory.name))
+        rows = service.initialize()["result_rows"]
+        self.assertEqual([row["kind"] for row in rows], ["header", "header", "row"])
+        self.assertEqual(rows[0]["title"], "一、盈利结果")
+        self.assertEqual(rows[1]["title"], "（一）并表口径")
+        self.assertEqual(rows[2]["name"], "归母净利润")
+        self.assertIn("values", rows[2])
+
+    def test_section_level_recognizes_numbered_and_parenthesized_titles(self):
+        from forecast_engine import section_level
+        self.assertEqual(section_level("一、盈利结果"), 1)
+        self.assertEqual(section_level("（一）并表口径"), 2)
+        self.assertEqual(section_level("（四）并表资本端变化"), 2)
+        self.assertIsNone(section_level("并表RWA增量"))
+        self.assertIsNone(section_level("归母净利润"))
+        self.assertIsNone(section_level("资产端"))
+
+    def test_capital_assumptions_group_classifies_as_input(self):
+        from template_catalog import TemplateImportService
+        item = {"row": 191, "display_name": "分红率", "group": "资本假设"}
+        self.assertEqual(TemplateImportService._classify(item, {})["classification"], "input")
 
 
     def test_initialization_blocks_historical_template_workspace(self):

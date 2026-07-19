@@ -763,7 +763,7 @@ class WorkbenchService:
                 "baseline": indicator["year_values"], "rule": current_rule, "rule_status": current_rule["confirmation_status"] if current_rule else "unsupported",
             })
         baseline = {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
-        result_rows = self._result_rows(catalog, None, None, rules)
+        result_rows = self._result_rows(catalog, None, None, rules, template.get("sections"))
         if read_only:
             trust = self._trust("historical_read_only", template, 0, None, {}, "历史模板仅供追溯：数据与规则只读，不能发起新测算", publication)
             scenario_draft = None
@@ -889,6 +889,7 @@ class WorkbenchService:
         engine = self.engine_factory()
         try:
             engine.open_isolated(path)
+            template = self.templates.regenerate_catalog(template_version_id, engine)
             graph = build_formula_graph(engine, template["indicator_catalog"], template["worksheet"])
             before = {rule["logical_rule_id"]: rule for rule in self.rules.list_latest_rule_summaries(template_version_id)}
             rules = self.rules.discover_rules(template_version_id, template["template_fingerprint"], template["worksheet"], template["indicator_catalog"], graph, actor)
@@ -1018,7 +1019,7 @@ class WorkbenchService:
             result.update({"engine_mode": "cold_com", "worker_id": None, "queue_wait_ms": 0.0, "cancel_status": "not_requested"})
         outputs = result["output_indicators"]
         baseline = result["summary_before"] or {item["display_name"]: item["year_values"] for item in catalog if item.get("classification") == "output"}
-        result_rows = self._result_rows(catalog, outputs, baseline, published_rules)
+        result_rows = self._result_rows(catalog, outputs, baseline, published_rules, template.get("sections"))
         finished_at = datetime.now(timezone.utc).isoformat()
         publication = self.rules.get_active_publication(template_version_id) if hasattr(self.rules, "get_active_publication") else None
         return {
@@ -1040,7 +1041,7 @@ class WorkbenchService:
     def _indicator_id(item: dict[str, Any]) -> str:
         return f"{item['group']}|{item['display_name']}|{item['row']}"
 
-    def _result_rows(self, catalog: list[dict[str, Any]], outputs: dict[str, Any] | None, baseline: dict[str, Any] | None, rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _result_rows(self, catalog: list[dict[str, Any]], outputs: dict[str, Any] | None, baseline: dict[str, Any] | None, rules: list[dict[str, Any]], sections: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
         precision_by_identity = {rule["indicator_key"]: self._display_precision(rule) for rule in rules if rule.get("indicator_key")}
         rows = []
         for item in catalog:
@@ -1053,13 +1054,15 @@ class WorkbenchService:
                 "cagr": item.get("result_values", {}).get("cagr"),
             }
             rows.append({
+                "kind": "row", "row": item["row"],
                 "id": self._indicator_id(item), "name": item["display_name"], "group": item["group"],
                 "unit": item.get("unit"), "location": item.get("cell_address"),
                 "values": values,
                 "baseline_values": dict(values) if baseline is None else baseline.get(item["display_name"]),
                 "precision": precision_by_identity.get(self._indicator_id(item)),
             })
-        return rows
+        headers = [{"kind": "header", "row": section["row"], "title": section["title"], "level": section.get("level", 1)} for section in sections or ()]
+        return sorted(rows + headers, key=lambda entry: entry["row"])
 
     @staticmethod
     def _display_precision(rule: dict[str, Any]) -> int | None:

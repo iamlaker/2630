@@ -11,7 +11,7 @@ from typing import Any
 from forecast_engine import WorkbookEngine
 
 
-INPUT_GROUPS = {"重要参数", "规模假设", "价格假设", "中收假设"}
+INPUT_GROUPS = {"重要参数", "规模假设", "价格假设", "中收假设", "资本假设"}
 
 
 class TemplateImportService:
@@ -117,12 +117,28 @@ class TemplateImportService:
             "storage_id": row["storage_id"], "file_size": row["file_size"],
             "imported_at": row["imported_at"], "worksheets": json.loads(row["worksheets_json"]),
             "worksheet": catalog["worksheet"], "indicator_catalog": catalog["indicators"],
-            "year_mapping": catalog["year_mapping"], "catalog_status": row["catalog_status"],
+            "year_mapping": catalog["year_mapping"], "sections": catalog.get("sections", []),
+            "catalog_status": row["catalog_status"],
             "import_status": row["import_status"], "error": None,
         }
 
     def list_template_versions(self) -> list[dict[str, Any]]:
         return [self._row_result(row) for row in self.connection.execute("SELECT * FROM template_versions ORDER BY version")]
+
+    def regenerate_catalog(self, template_version_id: int, engine: WorkbookEngine) -> dict[str, Any]:
+        """用当前解析器重新读取已存模板并刷新 catalog_json（保留 template_version_id，规则关联不断）。"""
+        row = self.connection.execute("SELECT * FROM template_versions WHERE id = ?", (template_version_id,)).fetchone()
+        if row is None:
+            raise ValueError("模板版本不存在")
+        catalog = engine.read_indicator_catalog()
+        catalog["indicators"] = [self._classify(item, {"并表口径总资产": "规模假设"}) for item in catalog["indicators"]]
+        self.connection.execute(
+            "UPDATE template_versions SET catalog_json = ?, catalog_status = ? WHERE id = ?",
+            (json.dumps(catalog, ensure_ascii=False), "regenerated", template_version_id),
+        )
+        self.connection.commit()
+        self._audit("catalog_regenerated", row["fingerprint"], template_version_id, "success")
+        return self._row_result(self.connection.execute("SELECT * FROM template_versions WHERE id = ?", (template_version_id,)).fetchone())
 
     def get_indicator_catalog(self, template_version_id: int) -> dict[str, Any] | None:
         row = self.connection.execute("SELECT * FROM template_versions WHERE id = ?", (template_version_id,)).fetchone()

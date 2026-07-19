@@ -5,6 +5,7 @@ import os
 import atexit
 import hashlib
 import queue
+import re
 import subprocess
 import tempfile
 import threading
@@ -57,6 +58,15 @@ class WorkbookEngine(Protocol):
     def copy_cycle_ranges(self) -> None: ...
     def read_cycle_differences(self) -> dict[str, float]: ...
     def close(self) -> None: ...
+
+
+def section_level(title: str) -> int | None:
+    """识别 Excel 总括标题行：一、二、… 编号为 1 级，（一）（二）… 为 2 级，其余不是标题。"""
+    if re.match(r"^[一二三四五六七八九十]+、", title):
+        return 1
+    if re.match(r"^（[一二三四五六七八九十]+）", title):
+        return 2
+    return None
 
 
 def file_sha256(path: Path) -> str:
@@ -390,6 +400,7 @@ class ExcelComWorkbookEngine:
         year_mapping = {str(year): column for year, column in zip(range(2026, 2031), "DEFGH")}
         group = ""
         indicators = []
+        sections = []
         contract_validated = False
         for row in range(1, sheet.UsedRange.Rows.Count + 1):
             raw_group = self._text(sheet.Cells(row, 1).Value)
@@ -407,8 +418,15 @@ class ExcelComWorkbookEngine:
                 continue
             if raw_group:
                 group = raw_group
+            if name == "指标":
+                continue
             values = [sheet.Cells(row, column).Value for column in range(4, 9)]
-            if not name or not any(value is not None for value in values):
+            if name and not any(value is not None for value in values):
+                level = section_level(name)
+                if level is not None:
+                    sections.append({"row": row, "title": name, "level": level})
+                continue
+            if not name:
                 continue
             number_format = str(sheet.Cells(row, 4).NumberFormat or "")
             unit = "%" if "%" in number_format else "未知"
@@ -433,6 +451,7 @@ class ExcelComWorkbookEngine:
             "worksheet": {"name": "汇总展示表", "index": int(sheet.Index)},
             "year_mapping": year_mapping,
             "indicators": indicators,
+            "sections": sections,
         }
 
     def read_cell_formula_or_value(self, sheet: str, cell: str) -> Any:
