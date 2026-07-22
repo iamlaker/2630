@@ -88,6 +88,7 @@
 .constraint-builder .cb-values { display: flex; flex-wrap: wrap; gap: 6px; }
 .constraint-builder .cb-values label { font-size: 10px; color: var(--muted); }
 .constraint-builder .cb-values input { width: 84px; display: block; margin-top: 2px; }
+.constraint-builder input.invalid { border-color: #c0392b; background: #fdf0ee; }
 .constraint-group-summary .cg-head { font-size: 11px; font-weight: 600; color: var(--teal); margin-bottom: 6px; }
 .constraint-group-summary .cg-year { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed #edf1ef; }
 .constraint-group-summary .cg-year label { color: var(--muted); font: 10px Consolas, monospace; }

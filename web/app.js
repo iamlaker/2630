@@ -933,22 +933,50 @@ function addConstraintGroup() {
     kinds = constraintRelationKinds(relation),
     pair = kinds.length > 1,
     entries = {};
-  document.querySelectorAll("[data-cb-value]").forEach((el) => (entries[el.dataset.cbValue] = Number(el.value)));
+  document.querySelectorAll("[data-cb-value]").forEach((el) => {
+    el.classList.remove("invalid");
+    const raw = String(el.value).trim();
+    entries[el.dataset.cbValue] = raw === "" ? null : Number(raw);
+    if (entries[el.dataset.cbValue] !== null && !Number.isFinite(entries[el.dataset.cbValue]))
+      entries[el.dataset.cbValue] = null;
+  });
+  const markInvalid = (key) => {
+    const el = document.querySelector(`[data-cb-value="${key}"]`);
+    if (el) el.classList.add("invalid");
+  };
   const targetYears = scope === "single" ? [String($("cbYear").value)] : years.map(String),
     records = [];
   for (const year of targetYears) {
     const key = scope === "all" ? "all" : year;
     if (pair) {
       const lower = entries[`${key}|0`], upper = entries[`${key}|1`];
-      if (!Number.isFinite(lower) || !Number.isFinite(upper)) return alert("请输入完整的区间上下限");
-      if (lower > upper) return alert("区间下限不能大于上限");
+      if (lower == null || upper == null) {
+        if (lower == null) markInvalid(`${key}|0`);
+        if (upper == null) markInvalid(`${key}|1`);
+        return alert("请输入完整的区间上下限");
+      }
+      if (lower > upper) {
+        markInvalid(`${key}|0`);
+        markInvalid(`${key}|1`);
+        return alert("区间下限不能大于上限");
+      }
       records.push({ year, kind: "min", value: lower }, { year, kind: "max", value: upper });
     } else {
       const value = entries[key];
-      if (!Number.isFinite(value)) return alert("请输入约束目标值");
+      if (value == null) {
+        markInvalid(key);
+        return alert("请输入约束目标值");
+      }
       records.push({ year, kind: kinds[0], value });
     }
   }
+  const indicatorKey = indicator_id || indicator_name,
+    signatureOf = (recs, key) => recs.map((r) => `${key}|${r.year}|${r.kind}`).sort().join(";"),
+    newSignature = signatureOf(records, indicatorKey),
+    duplicate = constraintGroups().some((group) =>
+      group.records.some((r) => r.enabled !== false) &&
+      signatureOf(group.records, group.records[0].indicator_id || group.records[0].indicator_name) === newSignature);
+  if (duplicate) return alert("已存在相同指标、关系与年份的约束，请直接编辑现有约束卡");
   const scopeLabel = scope === "all" ? "五年同值" : scope === "each" ? "逐年" : `${targetYears[0]} 单年`,
     valueLabel = pair ? `[${records[0].value}, ${records[1].value}]` : `${records[0].value}`,
     group_label = scope === "each"
@@ -1438,13 +1466,18 @@ function singleVariableCardBody(item) {
 }
 function constraintSummaryText(constraint) {
   const item = state.data.parameters.find((parameter) => parameter.id === constraint.indicator_id),
-    relation = constraint.kind === "min" ? "≥" : constraint.kind === "max" ? "≤" : "=";
+    relation = constraint.relation && constraint.relation !== "between"
+      ? constraint.relation
+      : constraint.kind === "min" ? "≥" : constraint.kind === "max" ? "≤" : "=";
   return `${constraint.year} ${relation} ${trackText(Number(constraint.value), item?.unit || "", item ? rulePrecision(item) : undefined)} · ${constraint.hard ? "硬约束" : "软目标"}${constraint.enabled === false ? " · 已停用" : ""}`;
 }
 function constraintCardBody(constraint, index) {
   const item = state.data.parameters.find((parameter) => parameter.id === constraint.indicator_id),
-    range = item && canEdit(item) ? sliderRange(item) : null;
-  return `<div class="constraint-form"><label>年份<select data-cc="year" data-index="${index}">${years.map((year) => `<option ${String(year) === String(constraint.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label>关系<select data-cc="kind" data-index="${index}"><option value="min" ${constraint.kind === "min" ? "selected" : ""}>≥</option><option value="max" ${constraint.kind === "max" ? "selected" : ""}>≤</option><option value="target" ${constraint.kind === "target" ? "selected" : ""}>=</option></select></label><label class="constraint-value">目标值<input type="number" data-cc="value" data-index="${index}" value="${constraint.value}"></label></div>${range ? `<input class="constraint-scale" type="range" data-cc-slider="${index}" min="${range[0]}" max="${range[1]}" step="${sliderStep(item, range)}" value="${constraint.value}">` : ""}<div class="constraint-summary">${constraintSummaryText(constraint)}</div><div class="card-foot"><button data-cc-hard="${index}">${constraint.hard ? "切换为软目标" : "切换为硬约束"}</button><label><input type="checkbox" data-cc-enable="${index}" ${constraint.enabled !== false ? "checked" : ""}> 启用</label></div>`;
+    range = item && canEdit(item) ? sliderRange(item) : null,
+    relation = constraint.relation && constraint.relation !== "between"
+      ? constraint.relation
+      : constraint.kind === "min" ? "≥" : constraint.kind === "max" ? "≤" : "=";
+  return `<div class="constraint-form"><label>年份<select data-cc="year" data-index="${index}">${years.map((year) => `<option ${String(year) === String(constraint.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label>关系<select data-cc="kind" data-index="${index}"><option value="gt" ${relation === ">" ? "selected" : ""}>&gt;</option><option value="min" ${relation === "≥" ? "selected" : ""}>≥</option><option value="target" ${relation === "=" ? "selected" : ""}>=</option><option value="max" ${relation === "≤" ? "selected" : ""}>≤</option><option value="lt" ${relation === "<" ? "selected" : ""}>&lt;</option></select></label><label class="constraint-value">目标值<input type="number" data-cc="value" data-index="${index}" value="${constraint.value}"></label></div>${range ? `<input class="constraint-scale" type="range" data-cc-slider="${index}" min="${range[0]}" max="${range[1]}" step="${sliderStep(item, range)}" value="${constraint.value}">` : ""}<div class="constraint-summary">${constraintSummaryText(constraint)}</div><div class="card-foot"><button data-cc-hard="${index}">${constraint.hard ? "切换为软目标" : "切换为硬约束"}</button><label><input type="checkbox" data-cc-enable="${index}" ${constraint.enabled !== false ? "checked" : ""}> 启用</label></div>`;
 }
 function parameterCard(id) {
   const item = state.data.parameters.find((parameter) => parameter.id === id);
@@ -1569,7 +1602,14 @@ function bindCardConfigEvents() {
   document.querySelectorAll("[data-cc]").forEach((el) => (el.onchange = () => {
     const constraint = state.reverseConstraints[Number(el.dataset.index)];
     if (!constraint) return;
-    constraint[el.dataset.cc] = el.dataset.cc === "value" ? Number(el.value) : el.value;
+    if (el.dataset.cc === "kind") {
+      const map = { gt: ["min", ">"], min: ["min", "≥"], target: ["target", "="], max: ["max", "≤"], lt: ["max", "<"] },
+        mapped = map[el.value];
+      if (mapped) [constraint.kind, constraint.relation] = mapped;
+      else constraint.kind = el.value;
+    } else {
+      constraint[el.dataset.cc] = el.dataset.cc === "value" ? Number(el.value) : el.value;
+    }
     syncReverseDraft();
     renderReverseConstraints();
     renderCardGrid();

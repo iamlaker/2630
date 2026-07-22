@@ -234,6 +234,20 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         # 卡片重渲染（约束/变量/选中变化的总出口）后刷新运行按钮状态
         self.assertIn("bindCardConfigEvents();\n  setCalculateEnabled();", app)
 
+    def test_constraint_builder_empty_value_dedupe_strict_relation(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 空值拦截：空串不再静默变 0，标红对应输入
+        self.assertIn('entries[el.dataset.cbValue] = raw === "" ? null : Number(raw)', app)
+        self.assertIn("markInvalid(", app)
+        self.assertIn(".constraint-builder input.invalid", css)
+        # 相同指标+关系+年份覆盖的重复组被拒绝
+        self.assertIn("已存在相同指标、关系与年份的约束", app)
+        # 单记录约束卡严格不等号选项与回写映射（>→min、<→max，relation 元数据保留）
+        self.assertIn('value="gt"', app)
+        self.assertIn('value="lt"', app)
+        self.assertIn('gt: ["min", ">"]', app)
+
     def test_forward_comparison_center_canvas_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
