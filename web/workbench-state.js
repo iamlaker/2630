@@ -12,6 +12,7 @@
       constraints: [],
       calculatedUnsaved: false,
       singleVariable: null,
+      singleVariableByIndicator: {},
       page: 0,
       cardLayout: "horizontal",
       centerView: "cards",

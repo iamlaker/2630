@@ -260,6 +260,21 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("次测算`", app)
         self.assertIn("求解摘要", app)
 
+    def test_variable_config_single_surface(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # 变量卡卡面全字段：步长、联动、优先级步进器、删除
+        self.assertIn('data-v2c="step"', app)
+        self.assertIn('data-v2c="linkage_strategy"', app)
+        self.assertIn("data-v2c-priority", app)
+        self.assertIn("data-v2c-remove", app)
+        # v2 面板已删除，变量配置收敛到卡面
+        self.assertNotIn('id="reverseVariables"', app)
+        self.assertNotIn('id="addReverseVariable"', app)
+        self.assertNotIn("renderReverseVariables", app)
+        # 单变量配置按指标保留，换选不丢
+        self.assertIn("singleVariableByIndicator", app)
+        self.assertIn("另有 ${others} 个指标已配置变量", app)
+
     def test_multi_add_variable_entry_on_card(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         # multi 占位卡直接提供添加为变量/约束入口，addReverseVariable 可接收任意指标

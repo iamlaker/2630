@@ -871,16 +871,9 @@ function setupReverse() {
     b = document.createElement("details");
   b.className = "reverse";
   b.innerHTML =
-    '<summary>单变量反向 · 约束清单</summary><p>当前指标作为变量；变量初始值与搜索范围在卡片上配置，约束在画布顶部的约束构建器中添加。配置完成后使用顶栏「开始求解」。</p><div id="reverseConstraints"></div>';
+    '<summary>反向求解 · 约束清单</summary><p>变量在卡片上添加与配置，约束在画布顶部的约束构建器中添加。配置完成后使用顶栏「开始求解」。</p><div id="reverseConstraints"></div>';
   host.parentElement.insertBefore(b, host);
-  const v2 = document.createElement("details");
-  v2.className = "reverse";
-  v2.innerHTML =
-    '<summary>多输入反推 · 变量管理</summary><p>在卡片上「添加为变量」，按优先级逐级求解；最多 15 次正向测算。配置完成后使用顶栏「开始求解」。</p><button id="addReverseVariable">加入当前输入</button><div id="reverseVariables"></div>';
-  host.parentElement.insertBefore(v2, host);
-  $("addReverseVariable").onclick = () => addReverseVariable();
   renderReverseConstraints();
-  renderReverseVariables();
 }
 function constraintRelationKinds(relation) {
   return relation === ">" || relation === "≥"
@@ -1168,40 +1161,7 @@ function addReverseVariable(item = state.selected) {
     linkage_strategy: item.rule.linkage_strategy || "independent",
   });
   syncReverseDraft();
-  renderReverseVariables();
   renderCardGrid();
-}
-function renderReverseVariables() {
-  if (!$("reverseVariables")) return;
-  $("reverseVariables").innerHTML =
-    state.reverseVariables
-      .map(
-        (x, i) =>
-          `<div class="reverse-variable"><strong>${x.indicator_name}</strong><label>优先级<input type="number" min="1" data-v2="priority" data-index="${i}" value="${x.priority}"></label><label>年度<select data-v2="year" data-index="${i}">${years.map((year) => `<option ${String(year) === x.year ? "selected" : ""}>${year}</option>`).join("")}</select></label><label>初始值<input type="number" data-v2="initial" data-index="${i}" value="${x.initial ?? ""}"></label><label>下限<input type="number" data-v2="lower" data-index="${i}" value="${x.lower}"></label><label>上限<input type="number" data-v2="upper" data-index="${i}" value="${x.upper}"></label><label>步长<input type="number" min="0" data-v2="step" data-index="${i}" value="${x.step ?? ""}"></label><label>联动<select data-v2="linkage_strategy" data-index="${i}"><option value="independent">独立</option><option value="same_delta">同幅</option><option value="same_value">同值</option><option value="baseline_ratio">同比例</option></select></label><button data-remove-v2="${i}">删除</button></div>`,
-      )
-      .join("") || "<small>尚未添加可调变量</small>";
-  document.querySelectorAll("[data-v2]").forEach((element) => {
-    const item = state.reverseVariables[+element.dataset.index];
-    if (element.dataset.v2 === "linkage_strategy") element.value = item.linkage_strategy;
-    element.onchange = () => {
-      const field = element.dataset.v2;
-      item[field] = ["priority", "initial", "lower", "upper", "step"].includes(field)
-        ? Number(element.value)
-        : element.value;
-      syncReverseDraft();
-      renderCardGrid();
-    };
-  });
-  document.querySelectorAll("[data-remove-v2]").forEach(
-    (element) =>
-      (element.onclick = () => {
-        state.reverseVariables.splice(+element.dataset.removeV2, 1);
-        syncReverseDraft();
-        renderReverseVariables();
-        renderCardGrid();
-      }),
-  );
-  if (state.data) renderNav();
 }
 async function runReverseV2() {
   if (isReadOnly()) return alert("历史模板只读，不能发起求解");
@@ -1330,7 +1290,6 @@ function loadModuleDraft(module) {
   else state.selected = null;
   renderNav();
   renderReverseConstraints();
-  renderReverseVariables();
   setCalculateEnabled();
   renderCardPages();
   renderCardGrid();
@@ -1364,8 +1323,8 @@ function switchModule(module) {
 }
 
 function updateReverseVisibility() {
-  document.querySelectorAll("details.reverse").forEach((item, index) => {
-    item.hidden = isReadOnly() || state.module === "forward" || state.module === "rules" || (state.module === "single" ? index !== 0 : index !== 1);
+  document.querySelectorAll("details.reverse").forEach((item) => {
+    item.hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
     item.open = !item.hidden;
   });
   $("constraintBuilder").hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
@@ -1437,32 +1396,40 @@ function forwardCardBody(item) {
   }).join("")}</div>`;
 }
 function ensureSingleVariable(item) {
-  const draft = currentDraft();
-  if (!draft.singleVariable || draft.singleVariable.indicator_id !== item.id) {
-    const range = item.rule?.allowed_range || [],
-      baseline = Number(item.baseline["2030"]),
-      initial = Number.isFinite(baseline) ? baseline : 0,
-      derived = [initial * 0.5, initial * 1.5];
-    draft.singleVariable = {
-      indicator_id: item.id,
-      year: "2030",
-      initial,
-      lower: range[0] ?? Math.min(...derived),
-      upper: range[1] ?? Math.max(...derived),
-    };
+  const draft = currentDraft(),
+    store = (draft.singleVariableByIndicator ||= {});
+  if (!store[item.id]) {
+    if (draft.singleVariable?.indicator_id === item.id) {
+      store[item.id] = draft.singleVariable;
+    } else {
+      const range = item.rule?.allowed_range || [],
+        baseline = Number(item.baseline["2030"]),
+        initial = Number.isFinite(baseline) ? baseline : 0,
+        derived = [initial * 0.5, initial * 1.5];
+      store[item.id] = {
+        indicator_id: item.id,
+        year: "2030",
+        initial,
+        lower: range[0] ?? Math.min(...derived),
+        upper: range[1] ?? Math.max(...derived),
+      };
+    }
     persistWorkbench();
   }
-  return draft.singleVariable;
+  draft.singleVariable = store[item.id];
+  return store[item.id];
 }
 function variableCardBody(item, variable, index) {
   const precision = rulePrecision(item),
-    step = Number.isFinite(variable.step) && variable.step > 0 ? variable.step : "any";
-  return `<div class="constraint-form"><label>下限<input type="number" data-v2c="lower" data-index="${index}" value="${variable.lower}"></label><label>年份<select data-v2c="year" data-index="${index}">${years.map((year) => `<option ${String(year) === String(variable.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label class="constraint-value">上限<input type="number" data-v2c="upper" data-index="${index}" value="${variable.upper}"></label></div><input class="constraint-scale" type="range" data-v2c-slider="${index}" min="${variable.lower}" max="${variable.upper}" step="${step}" value="${variable.initial ?? variable.lower}"><div class="constraint-summary">优先级 <input type="number" min="1" data-v2c="priority" data-index="${index}" value="${variable.priority}"> · 初始值 <span data-v2c-initial>${trackText(Number(variable.initial), item.unit, precision)}</span> · 允许求解器搜索</div><div class="card-foot"><span>相对基准最小偏离</span><span>硬边界</span></div>`;
+    step = Number.isFinite(variable.step) && variable.step > 0 ? variable.step : "any",
+    linkageLabels = { independent: "独立", same_delta: "同幅", same_value: "同值", baseline_ratio: "同比例" };
+  return `<div class="constraint-form"><label>下限<input type="number" data-v2c="lower" data-index="${index}" value="${variable.lower}"></label><label>年份<select data-v2c="year" data-index="${index}">${years.map((year) => `<option ${String(year) === String(variable.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label class="constraint-value">上限<input type="number" data-v2c="upper" data-index="${index}" value="${variable.upper}"></label></div><input class="constraint-scale" type="range" data-v2c-slider="${index}" min="${variable.lower}" max="${variable.upper}" step="${step}" value="${variable.initial ?? variable.lower}"><div class="constraint-summary">初始值 <span data-v2c-initial>${trackText(Number(variable.initial), item.unit, precision)}</span> · 允许求解器搜索</div><div class="constraint-form variable-extra"><label>步长<input type="number" min="0" step="any" data-v2c="step" data-index="${index}" value="${variable.step ?? ""}"></label><label>联动<select data-v2c="linkage_strategy" data-index="${index}">${Object.entries(linkageLabels).map(([key, label]) => `<option value="${key}" ${variable.linkage_strategy === key ? "selected" : ""}>${label}</option>`).join("")}</select></label><span class="priority-stepper" title="先动 P1，不够再动 P2"><button data-v2c-priority="${index}|-1" ${Number(variable.priority) <= 1 ? "disabled" : ""}>−</button><b>P${variable.priority}</b><button data-v2c-priority="${index}|1">+</button></span><button class="variable-remove" data-v2c-remove="${index}">删除</button></div><div class="card-foot"><span>相对基准最小偏离</span><span>硬边界</span></div>`;
 }
 function singleVariableCardBody(item) {
   const config = ensureSingleVariable(item),
-    precision = rulePrecision(item);
-  return `<div class="constraint-form"><label>下限<input type="number" data-sv="lower" value="${config.lower}"></label><label>年份<select data-sv="year">${years.map((year) => `<option ${String(year) === String(config.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label class="constraint-value">上限<input type="number" data-sv="upper" value="${config.upper}"></label></div><input class="constraint-scale" type="range" data-sv-slider min="${config.lower}" max="${config.upper}" step="${sliderStep(item, [Number(config.lower), Number(config.upper)])}" value="${config.initial}"><div class="constraint-summary">初始值 <span data-sv-initial>${trackText(Number(config.initial), item.unit, precision)}</span> · 允许求解器搜索</div><div class="card-foot"><span>相对基准最小偏离</span><span>搜索边界</span></div>`;
+    precision = rulePrecision(item),
+    others = Object.keys(currentDraft().singleVariableByIndicator || {}).filter((id) => id !== item.id).length;
+  return `<div class="constraint-form"><label>下限<input type="number" data-sv="lower" value="${config.lower}"></label><label>年份<select data-sv="year">${years.map((year) => `<option ${String(year) === String(config.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label class="constraint-value">上限<input type="number" data-sv="upper" value="${config.upper}"></label></div><input class="constraint-scale" type="range" data-sv-slider min="${config.lower}" max="${config.upper}" step="${sliderStep(item, [Number(config.lower), Number(config.upper)])}" value="${config.initial}"><div class="constraint-summary">初始值 <span data-sv-initial>${trackText(Number(config.initial), item.unit, precision)}</span> · 允许求解器搜索${others ? ` · 另有 ${others} 个指标已配置变量` : ""}</div><div class="card-foot"><span>相对基准最小偏离</span><span>搜索边界</span></div>`;
 }
 function constraintSummaryText(constraint) {
   const item = state.data.parameters.find((parameter) => parameter.id === constraint.indicator_id),
@@ -1573,9 +1540,28 @@ function bindCardConfigEvents() {
   document.querySelectorAll("[data-v2c]").forEach((el) => (el.onchange = () => {
     const variable = state.reverseVariables[Number(el.dataset.index)];
     if (!variable) return;
-    variable[el.dataset.v2c] = el.dataset.v2c === "year" ? el.value : Number(el.value);
+    const field = el.dataset.v2c;
+    if (["year", "linkage_strategy"].includes(field)) variable[field] = el.value;
+    else if (field === "step") variable[field] = el.value === "" ? null : Number(el.value);
+    else variable[field] = Number(el.value);
     syncReverseDraft();
-    renderReverseVariables();
+    renderCardGrid();
+  }));
+  document.querySelectorAll("[data-v2c-priority]").forEach((el) => (el.onclick = () => {
+    const [index, delta] = el.dataset.v2cPriority.split("|"),
+      variable = state.reverseVariables[Number(index)];
+    if (!variable) return;
+    variable.priority = Math.max(1, Number(variable.priority || 1) + Number(delta));
+    syncReverseDraft();
+    renderCardGrid();
+  }));
+  document.querySelectorAll("[data-v2c-remove]").forEach((el) => (el.onclick = () => {
+    const index = Number(el.dataset.v2cRemove),
+      variable = state.reverseVariables[index];
+    if (!variable) return;
+    if (!confirm(`确认删除变量「${variable.indicator_name}」？`)) return;
+    state.reverseVariables.splice(index, 1);
+    syncReverseDraft();
     renderCardGrid();
   }));
   document.querySelectorAll("[data-v2c-slider]").forEach((el) => {
@@ -1589,7 +1575,7 @@ function bindCardConfigEvents() {
       if (summary) summary.textContent = trackText(variable.initial, item?.unit || "", item ? rulePrecision(item) : undefined);
       syncReverseDraft();
     };
-    el.onchange = () => { syncReverseDraft(); renderReverseVariables(); renderCardGrid(); };
+    el.onchange = () => { syncReverseDraft(); renderCardGrid(); };
   });
   document.querySelectorAll("[data-sv]").forEach((el) => (el.onchange = () => {
     const config = currentDraft().singleVariable;
@@ -1783,7 +1769,7 @@ async function protectDraftBeforeSwitch() {
     return await saveScenario();
   }
   if (choice === "discard") {
-    currentDraft().edits = {}; currentDraft().variables = []; currentDraft().constraints = []; currentDraft().calculatedUnsaved = false; currentDraft().singleVariable = null;
+    currentDraft().edits = {}; currentDraft().variables = []; currentDraft().constraints = []; currentDraft().calculatedUnsaved = false; currentDraft().singleVariable = null; currentDraft().singleVariableByIndicator = {};
     state.edits = {}; state.reverseVariables = []; state.reverseConstraints = []; persistWorkbench();
     return true;
   }
