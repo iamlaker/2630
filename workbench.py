@@ -53,9 +53,6 @@ def _match_core_name(names: list[str], aliases: tuple[str, ...]) -> str | None:
         if hit is not None:
             return hit
     return None
-ACTIVITY_TEMPLATE_FINGERPRINT = "a27df7cb03878ea11779e82d1c7eca3b45abf227e6bddd6d269d77b7d62fbdee"
-
-
 def filter_parameters(items: list[dict[str, Any]], *, search: str = "", group: str | None = None, favorites: bool = False, adjusted: bool = False, pending: bool = False) -> list[dict[str, Any]]:
     search = search.casefold().strip()
     return [item for item in items if (not search or search in item["name"].casefold()) and (not group or item["group"] == group) and (not favorites or item.get("favorite")) and (not adjusted or item.get("adjusted")) and (not pending or item.get("rule_status") in PENDING_STATUSES)]
@@ -205,7 +202,7 @@ class CalculationTaskManager:
 
 
 class WorkbenchService:
-    def __init__(self, templates: Any, rules: Any, engine_factory: Callable[[], Any], storage_dir: Path, activity_template_fingerprint: str | None = None, scenarios: Any = None, default_engine_mode: str = "cold_com", warm_timeout_seconds: float = 60.0, warm_worker_factory: Any = WarmExcelWorker):
+    def __init__(self, templates: Any, rules: Any, engine_factory: Callable[[], Any], storage_dir: Path, activity_template_fingerprint: str | None = None, scenarios: Any = None, default_engine_mode: str = "cold_com", warm_timeout_seconds: float = 60.0, warm_worker_factory: Any = WarmExcelWorker, activity_template_config_path: Path | None = None):
         self.templates, self.rules, self.engine_factory, self.storage_dir = templates, rules, engine_factory, Path(storage_dir)
         self.activity_template_fingerprint = activity_template_fingerprint
         if default_engine_mode not in ("cold_com", "warm_com"):
@@ -220,6 +217,7 @@ class WorkbenchService:
         self.reverse_audit: list[dict[str, Any]] = []
         self.exports = ExportService(self.storage_dir / "exports")
         self.display_defaults_path = self.storage_dir / "display-defaults.json"
+        self.activity_template_config_path = Path(activity_template_config_path) if activity_template_config_path else None
 
     def display_defaults(self) -> dict[str, list[str]]:
         if not self.display_defaults_path.exists():
@@ -238,6 +236,20 @@ class WorkbenchService:
         self.display_defaults_path.parent.mkdir(parents=True, exist_ok=True)
         self.display_defaults_path.write_text(json.dumps(defaults, ensure_ascii=False, indent=2), encoding="utf-8")
         return defaults
+
+    def select_activity_template(self, template_version_id: int) -> dict[str, Any]:
+        template = self.templates.get_indicator_catalog(template_version_id)
+        if not template:
+            raise ValueError("模板版本不存在")
+        self.activity_template_fingerprint = template["template_fingerprint"]
+        with self._warm_lock:
+            worker, self._warm_worker = self._warm_worker, None
+        if worker:
+            worker.shutdown()
+        if self.activity_template_config_path:
+            self.activity_template_config_path.parent.mkdir(parents=True, exist_ok=True)
+            self.activity_template_config_path.write_text(json.dumps({"template_fingerprint": self.activity_template_fingerprint}, ensure_ascii=False), encoding="utf-8")
+        return {"id": template["template_version_id"], "version": template["template_version"], "filename": template.get("filename"), "fingerprint": self.activity_template_fingerprint}
 
     def export(self, kind: str, payload: dict[str, Any], *, actor: str = "local-user") -> dict[str, Any]:
         subject = payload.get("scenario_id") or payload.get("comparison_id") or payload.get("scenario_draft", {}).get("scenario_id") or f"{kind}:current"
@@ -775,8 +787,8 @@ class WorkbenchService:
             trust = self._trust("pending_rule_confirmation", template, 0, None, {}, "活动模板尚未发布可用规则集" if not publication else "尚未执行测算")
             scenario_draft = {"scenario_type": "custom", "template_version_id": template["template_version_id"], "rule_publication_id": publication.get("publication_id") if publication else None, "input_adjustments": {}}
         return {
-            "template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"], "activity": not read_only, "editable": bool(publication) and not read_only, "read_only": read_only},
-            "templates": [{"id": item["template_version_id"], "version": item["template_version"], "fingerprint": item["template_fingerprint"], "activity": item["template_version_id"] == activity["template_version_id"], "read_only": item["template_version_id"] != activity["template_version_id"]} for item in versions],
+            "template": {"id": template["template_version_id"], "version": template["template_version"], "filename": template.get("filename"), "fingerprint": template["template_fingerprint"], "activity": not read_only, "editable": bool(publication) and not read_only, "read_only": read_only},
+            "templates": [{"id": item["template_version_id"], "version": item["template_version"], "filename": item.get("filename"), "fingerprint": item["template_fingerprint"], "activity": item["template_version_id"] == activity["template_version_id"], "read_only": item["template_version_id"] != activity["template_version_id"]} for item in versions],
             "rule_set": {"active": bool(publication), "publication_id": publication.get("publication_id") if publication else None, "rule_count": len(rules)},
             "parameters": parameters, "baseline_results": baseline, "core_results": self._core_results(baseline, baseline, catalog),
             "details": self._details(catalog, baseline, baseline), "result_rows": result_rows, "display_defaults": self.display_defaults(), "trust": trust,
@@ -788,7 +800,7 @@ class WorkbenchService:
             return versions[-1]
         template = next((item for item in versions if item["template_fingerprint"].casefold() == self.activity_template_fingerprint.casefold()), None)
         if not template:
-            raise RuntimeError("活动模板 0717 尚未导入，历史模板不能作为可编辑工作区")
+            raise RuntimeError("当前活动模板尚未导入，历史模板不能作为可编辑工作区")
         return template
 
     def rule_admin(self, template_version_id: int, *, status: str | None = None, search: str = "", group: str | None = None, confidence: str | None = None, diagnostic: str | None = None, configuration: str | None = None) -> dict[str, Any]:
@@ -807,7 +819,7 @@ class WorkbenchService:
         if not versions:
             raise RuntimeError("没有可用模板")
         template = self._activity_template(versions)
-        return {"template": {"id": template["template_version_id"], "version": template["template_version"], "fingerprint": template["template_fingerprint"]}, "templates": [{"id": item["template_version_id"], "version": item["template_version"], "fingerprint": item["template_fingerprint"]} for item in versions]}
+        return {"template": {"id": template["template_version_id"], "version": template["template_version"], "filename": template.get("filename"), "fingerprint": template["template_fingerprint"]}, "templates": [{"id": item["template_version_id"], "version": item["template_version"], "filename": item.get("filename"), "fingerprint": item["template_fingerprint"]} for item in versions]}
 
     def update_rule(self, template_version_id: int, rule_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.rules.get_rule(rule_id, include_snapshot=False)
@@ -829,9 +841,9 @@ class WorkbenchService:
         if not configuration["adjustment_mode"] or not configuration["linkage_strategy"]:
             raise ValueError("调整模式和五年联动策略不能为空")
         if action == "confirm":
-            sources = payload.get("selected_sources") or {}
-            if set(sources) != {str(year) for year in YEARS} or any(not item.get("sheet") or not item.get("cell") for item in sources.values()):
-                raise ValueError("确认规则必须选择完整五个年度的源单元格")
+            sources = {str(year): source for year, source in (payload.get("selected_sources") or {}).items() if source.get("sheet") and source.get("cell")}
+            if not sources or not set(sources).issubset({str(year) for year in YEARS}):
+                raise ValueError("确认规则至少需要选择一个年度的源单元格")
             template = self.templates.get_indicator_catalog(template_version_id)
             sheet_names = {item["name"] for item in template.get("worksheets", [])}
             for source in sources.values():
@@ -1114,17 +1126,40 @@ class WorkbenchService:
         return {"status": status, "reason": error or reasons.get(status, status), "template_version": template["template_version"], "rule_version": publication.get("publication_id") if publication else None, "iterations": iterations, "final_difference": difference, "final_differences": differences, "error": error}
 
 
-def create_runtime(root: Path) -> WorkbenchService:
+def create_runtime(root: Path, template_path: Path | None = None) -> WorkbenchService:
     data = root / ".workbench"
     data.mkdir(exist_ok=True)
     template_service = TemplateImportService(data / "templates", data / "catalog.sqlite3", ExcelComWorkbookEngine())
-    versions = template_service.list_template_versions()
-    if not any(item["template_fingerprint"].casefold() == ACTIVITY_TEMPLATE_FINGERPRINT for item in versions):
-        template = template_service.import_template(TEMPLATE_PATH)
+    sources = sorted((root / "模版").glob("*.xlsx"))
+    if not sources:
+        sources = [TEMPLATE_PATH]
+    imported = []
+    for source in sources:
+        template = template_service.import_template(source)
         if template["import_status"] != "success": raise RuntimeError(template["error"])
+        imported.append(template)
+    config_path = data / "current-template.json"
+    selected = None
+    if template_path is not None:
+        requested = Path(template_path)
+        if not requested.is_absolute():
+            requested = root / requested
+        selected = next((item for item in imported if item.get("filename") == requested.name), None)
+        if not selected:
+            raise ValueError(f"未找到已导入模板: {requested.name}")
+    if selected is None:
+        try:
+            configured_fingerprint = json.loads(config_path.read_text(encoding="utf-8")).get("template_fingerprint")
+            selected = next((item for item in imported if item["template_fingerprint"] == configured_fingerprint), None)
+        except (OSError, ValueError, TypeError):
+            pass
+    if selected is None:
+        selected = next((item for item in imported if item.get("filename") == TEMPLATE_PATH.name), imported[-1])
     rule_service = RuleService(data / "rules.sqlite3")
     scenario_store = ScenarioStore(data / "scenarios.sqlite3")
-    return WorkbenchService(template_service, rule_service, ExcelComWorkbookEngine, data / "templates", ACTIVITY_TEMPLATE_FINGERPRINT, scenario_store, default_engine_mode=os.environ.get("WORKBENCH_ENGINE_MODE", "cold_com"), warm_timeout_seconds=float(os.environ.get("WORKBENCH_WARM_TIMEOUT_SECONDS", "60")))
+    service = WorkbenchService(template_service, rule_service, ExcelComWorkbookEngine, data / "templates", selected["template_fingerprint"], scenario_store, default_engine_mode=os.environ.get("WORKBENCH_ENGINE_MODE", "cold_com"), warm_timeout_seconds=float(os.environ.get("WORKBENCH_WARM_TIMEOUT_SECONDS", "60")), activity_template_config_path=config_path)
+    service.select_activity_template(selected["template_version_id"])
+    return service
 
 
 def build_handler(service: WorkbenchService, static: Path, admin_token: str) -> type[BaseHTTPRequestHandler]:
@@ -1238,6 +1273,9 @@ def build_handler(service: WorkbenchService, static: Path, admin_token: str) -> 
                 elif path == "/api/display-defaults":
                     if not self._require_admin(): return
                     self._send(200, service.save_display_defaults(body))
+                elif path == "/api/templates/current":
+                    if not self._require_admin(): return
+                    self._send(200, service.select_activity_template(int(body["template_version_id"])))
                 elif path.startswith("/api/scenarios/") and len(path.split("/")) == 5:
                     scenario_id, action = path.split("/")[3], path.split("/")[4]
                     if action == "copy": self._send(201, service.copy_scenario(scenario_id, body, actor=body.get("actor", "local-user")))
@@ -1268,19 +1306,24 @@ def build_handler(service: WorkbenchService, static: Path, admin_token: str) -> 
     return Handler
 
 
-def serve(host: str, port: int, root: Path, admin_token: str | None = None) -> None:
-    service, static, admin_token = create_runtime(root), root / "web", admin_token or os.environ.get("RULE_ADMIN_TOKEN") or secrets.token_urlsafe(24)
+ADMIN_TOKEN = "abcd1234"
+
+
+def serve(host: str, port: int, root: Path, admin_token: str | None = None, template_path: Path | None = None) -> None:
+    # 规则维护使用固定管理员令牌，避免不同启动方式产生不一致的令牌。
+    del admin_token
+    service, static, admin_token = create_runtime(root, template_path), root / "web", ADMIN_TOKEN
     print(f"管理员令牌：{admin_token}")
     print(f"工作台已启动：http://{host}:{port}")
     ThreadingHTTPServer((host, port), build_handler(service, static, admin_token)).serve_forever()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(); parser.add_argument("--host", default="127.0.0.1"); parser.add_argument("--port", type=int, default=8765); parser.add_argument("--admin-token"); parser.add_argument("--rescan-template", type=int); parser.add_argument("--actor", default="local-admin"); parser.add_argument("--force-rescan", action="store_true")
+    parser = argparse.ArgumentParser(); parser.add_argument("--host", default="127.0.0.1"); parser.add_argument("--port", type=int, default=8765); parser.add_argument("--admin-token"); parser.add_argument("--template", type=Path); parser.add_argument("--rescan-template", type=int); parser.add_argument("--actor", default="local-admin"); parser.add_argument("--force-rescan", action="store_true")
     args = parser.parse_args()
     if args.rescan_template is not None:
-        service = create_runtime(Path(__file__).parent)
+        service = create_runtime(Path(__file__).parent, args.template)
         try: print(json.dumps(service._rescan_template(args.rescan_template, actor=args.actor), ensure_ascii=False))
         finally: service.templates.close(); service.rules.close()
     else:
-        serve(args.host, args.port, Path(__file__).parent, args.admin_token)
+        serve(args.host, args.port, Path(__file__).parent, args.admin_token, args.template)

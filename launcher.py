@@ -19,6 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 CONFIG_PATH = ROOT / ".workbench" / "launcher.json"
 DEFAULT_PORT = "8765"
+TEMPLATE_DIR = ROOT / "模版"
+DEFAULT_TEMPLATE = "2026-2030年盈利测算表0720-模板.xlsx"
 
 
 @dataclass
@@ -120,10 +122,16 @@ def port_free(port: str) -> bool:
     return not any(port in [str(p) for ports in listener_ports().values() for p in ports])
 
 
-def start_instance(port: str, token: str) -> None:
+def available_templates() -> list[str]:
+    return [path.name for path in sorted(TEMPLATE_DIR.glob("*.xlsx"))]
+
+
+def start_instance(port: str, token: str, template: str) -> None:
     cmd = [sys.executable, str(ROOT / "workbench.py"), "--port", port]
     if token:
         cmd += ["--admin-token", token]
+    if template:
+        cmd += ["--template", str(TEMPLATE_DIR / template)]
     subprocess.Popen(cmd, cwd=ROOT, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
@@ -134,9 +142,9 @@ def load_config() -> dict:
         return {}
 
 
-def save_config(port: str, token: str) -> None:
+def save_config(port: str, token: str, template: str) -> None:
     CONFIG_PATH.parent.mkdir(exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps({"port": port, "token": token}, ensure_ascii=False, indent=1), encoding="utf-8")
+    CONFIG_PATH.write_text(json.dumps({"port": port, "token": token, "template": template}, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def self_test() -> int:
@@ -222,27 +230,33 @@ def main() -> None:
             refresh()
 
     def start() -> None:
-        port, token = port_var.get().strip(), token_var.get().strip()
+        port, token, template = port_var.get().strip(), token_var.get().strip(), template_var.get().strip()
         if not port.isdigit():
             status.set("端口必须是数字")
+            return
+        if template not in available_templates():
+            status.set("请选择模版目录中的有效模板")
             return
         if not port_free(port):
             status.set(f"端口 {port} 已被占用——请先终止旧实例或用「重启」")
             return
-        save_config(port, token)
-        start_instance(port, token)
-        status.set(f"已启动新实例（端口 {port}），等待就绪…")
+        save_config(port, token, template)
+        start_instance(port, token, template)
+        status.set(f"已启动新实例（端口 {port}，模板 {template}），等待就绪…")
         root.after(3000, refresh)
 
     def restart() -> None:
-        port, token = port_var.get().strip(), token_var.get().strip()
+        port, token, template = port_var.get().strip(), token_var.get().strip(), template_var.get().strip()
+        if not port.isdigit() or template not in available_templates():
+            status.set("请输入有效端口并选择模版目录中的有效模板")
+            return
         victims = [inst for inst in instances if inst.port == port or int(port) in inst.listening_ports]
         for inst in victims:
             kill(inst.pid)
-        save_config(port, token)
+        save_config(port, token, template)
         time.sleep(0.8)
-        start_instance(port, token)
-        status.set(f"已重启（端口 {port}，清理 {len(victims)} 个残留），等待就绪…")
+        start_instance(port, token, template)
+        status.set(f"已重启（端口 {port}，模板 {template}，清理 {len(victims)} 个残留），等待就绪…")
         root.after(4000, refresh)
 
     def open_workbench() -> None:
@@ -260,8 +274,13 @@ def main() -> None:
     port_var = tk.StringVar(value=config.get("port", DEFAULT_PORT))
     tk.Entry(bar, textvariable=port_var, width=7).pack(side="left", padx=(2, 10))
     tk.Label(bar, text="管理员令牌").pack(side="left")
-    token_var = tk.StringVar(value=config.get("token", ""))
+    token_var = tk.StringVar(value=config.get("token") or "abcd1234")
     tk.Entry(bar, textvariable=token_var, width=24).pack(side="left", padx=(2, 10))
+    tk.Label(bar, text="当前模板").pack(side="left")
+    templates = available_templates()
+    selected_template = config.get("template", DEFAULT_TEMPLATE)
+    template_var = tk.StringVar(value=selected_template if selected_template in templates else (DEFAULT_TEMPLATE if DEFAULT_TEMPLATE in templates else (templates[-1] if templates else "")))
+    ttk.Combobox(bar, textvariable=template_var, values=templates, state="readonly", width=34).pack(side="left", padx=(2, 10))
     for text, cmd in [("刷新", refresh), ("启动", start), ("重启(清残留)", restart),
                       ("终止选中", kill_selected), ("全部终止", kill_all),
                       ("打开工作台", open_workbench), ("复制令牌", copy_token)]:

@@ -5,8 +5,9 @@ import threading
 import unittest
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
-from workbench import build_handler
+from workbench import ADMIN_TOKEN, build_handler, serve
 
 
 class StubService:
@@ -114,6 +115,12 @@ class AdminSessionHttpTests(unittest.TestCase):
         status, payload, _ = self.request("GET", "/api/admin/session")
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"admin": False})
+
+    def test_server_uses_fixed_admin_token(self):
+        service = object()
+        with patch("workbench.create_runtime", return_value=service), patch("workbench.build_handler", return_value=object()) as handler, patch("workbench.ThreadingHTTPServer"):
+            serve("127.0.0.1", 8765, Path("workspace"), "another-token")
+        handler.assert_called_once_with(service, Path("workspace") / "web", ADMIN_TOKEN)
 
 
 if __name__ == "__main__":

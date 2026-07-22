@@ -5,7 +5,7 @@ This context defines the business language used to operate template-backed bank 
 ## Language
 
 **Activity Template**:
-The template version that is authoritative for all newly initiated calculations, rule-set maintenance, and scenarios. The activity template is currently `2026-2030年盈利测算表0717-模板.xlsx`; older templates remain historical only.
+The template version that is authoritative for all newly initiated calculations, rule-set maintenance, and scenarios. It is chosen in the workbench or launcher and persists across restarts; the default is `2026-2030年盈利测算表0720-模板.xlsx`. Older templates remain historical only until selected as the activity template.
 _Avoid_: Current file, latest Excel, default workbook
 
 **Historical Template**:

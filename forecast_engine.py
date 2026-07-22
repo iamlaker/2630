@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 
-TEMPLATE_PATH = Path(__file__).parent / "模版" / "2026-2030年盈利测算表0717-模板.xlsx"
+TEMPLATE_PATH = Path(__file__).parent / "模版" / "2026-2030年盈利测算表0720-模板.xlsx"
 
 
 class CalculationCancelled(Exception):

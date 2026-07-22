@@ -4,3 +4,8 @@ __pycache__/
 .workbench-server*.log
 ~$*
 .scratch/shots/
+.workbench/current-template.json
+.workbench/launcher.json
+.workbench/templates/display-defaults.json
+.workbench/templates/*.xlsx
+.workbench/templates/exports/

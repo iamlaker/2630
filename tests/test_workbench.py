@@ -44,17 +44,16 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")
         css = (self.web / "style.css").read_text(encoding="utf-8")
-        # 组头展示 可见/总数 与相关计数，输入与输出两侧一致
-        self.assertEqual(app.count("/${total} 项 · ${relevantCount} 相关"), 2)
+        # 左侧输入导航保留可见/总数与相关计数；右侧重复导航已删除。
+        self.assertEqual(app.count("/${total} 项 · ${relevantCount} 相关"), 1)
         # 五种状态点并列：已选、已修改、约束、已有结果、异常
         for cls in ("selected", "edited", "constraint", "result", "error"):
             self.assertIn(f".dot.{cls}", css)
             self.assertIn(f'tag {cls}', html)
-        # 输出导航同样渲染状态点
-        self.assertIn("${outputStateDots(item)}", app)
-        # 自动展开覆盖管理员默认项与活跃反向约束
+        # 输出导航与其勾选状态点不再重复占用右栏空间。
+        self.assertNotIn("function renderOutputNavigation", app)
+        # 输入导航自动展开覆盖管理员默认项与活跃反向约束。
         self.assertIn("display_defaults?.inputs?.includes", app)
-        self.assertIn("display_defaults?.outputs?.includes", app)
         self.assertIn("activeReverseConstraints()", app)
         # 已有结果基于真实计算数据；异常覆盖规则错误与未命中约束
         self.assertIn("edited_values?.[item.id]", app)
@@ -80,6 +79,50 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("ResizeObserver", app)
         # 网格列随宽度自适应
         self.assertIn("auto-fill", css)
+
+    def test_card_rows_size_to_their_rendered_content(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        self.assertIn("grid-auto-rows: max-content", css)
+        self.assertNotIn('currentDraft().cardLayout === "horizontal" ? 450 : 240', app)
+
+    def test_compact_cards_and_independent_result_scrollers(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        self.assertIn("card-sort-menu", app)
+        self.assertNotIn(".result-table td:first-child .name { display: -webkit-box", css)
+        self.assertNotIn('id="outputSearch"', html)
+        self.assertIn('<section class="scenarios panel-scroll">', html)
+        self.assertIn('<section class="results-details panel-scroll">', html)
+        self.assertIn('id="resetResultColumns"', html)
+        self.assertIn('id="toggleLeftPane"', html)
+        self.assertIn('id="toggleCenterPane"', html)
+        self.assertIn('id="toggleRightPane"', html)
+        self.assertIn('id="showLeftPane"', html)
+        self.assertIn('data-right-resize="execution"', html)
+        self.assertIn('<section class="execution-status panel-scroll">', html)
+        self.assertNotIn('id="comparisonYear"', html)
+        self.assertNotIn('id="comparisonGroup"', html)
+        self.assertNotIn('id="comparisonScenario"', html)
+        self.assertIn(".panel-scroll-content { flex: 1 1 0; overflow: auto;", css)
+        self.assertIn(".results-details .panel-scroll-content { display: flex; flex-direction: column;", css)
+        self.assertIn(".scenarios:has(details[open])", css)
+        self.assertIn("--scenario-panel-height", css)
+        self.assertIn("resetResultColumns", app)
+        self.assertIn("onpointerdown", app)
+        self.assertIn("td:first-child .name", css)
+        self.assertIn("formatDetailResultValue", app)
+        self.assertIn("applyPaneVisibility", app)
+        self.assertIn("setupRightPanelResize", app)
+        self.assertIn("rightPanelHeights", app)
+        self.assertIn("grid-template-areas", css)
+        self.assertIn(".workspace.left-pane-collapsed .left-pane", css)
+        self.assertIn(".workspace.center-pane-collapsed .center-pane", css)
+        self.assertIn("right-pane-collapsed", css)
+        self.assertIn(".right-pane { padding: 0; overflow-y: auto;", css)
+        self.assertIn("flex: 1 0 180px", css)
+        self.assertIn("text-align: left", css)
 
     def test_output_pane_excel_hierarchy_and_collapsible_results(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
@@ -413,7 +456,7 @@ class WorkbenchTests(unittest.TestCase):
 
     def test_initialization_blocks_historical_template_workspace(self):
         service = WorkbenchService(FakeTemplates(), FakeRules([rule(), rule("存款利率")]), InMemoryWorkbookEngine, Path("."), "0717-fingerprint")
-        with self.assertRaisesRegex(RuntimeError, "0717"):
+        with self.assertRaisesRegex(RuntimeError, "活动模板"):
             service.initialize()
 
     def test_initialization_without_publication_is_read_only(self):
@@ -514,10 +557,10 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(edited["adjustment_mode"], "percentage_point")
         self.assertEqual(rejected["confirmation_status"], "rejected")
 
-    def test_confirmation_requires_all_five_year_sources(self):
+    def test_confirmation_allows_a_single_year_source(self):
         service = self.service([rule(status="pending_confirmation", pending=True)])
-        with self.assertRaisesRegex(ValueError, "五个年度"):
-            service.update_rule(1, "rule-贷款利率", {"action": "confirm", "expected_version": 2, "selected_sources": {"2026": {"sheet": "参数", "cell": "A1"}}, "adjustment_mode": "basis_point", "minimum_step": 1, "allowed_range": [0, 10], "linkage_strategy": "independent"})
+        updated = service.update_rule(1, "rule-贷款利率", {"action": "confirm", "expected_version": 2, "selected_sources": {"2026": {"sheet": "参数", "cell": "A1"}}, "adjustment_mode": "basis_point", "minimum_step": 1, "allowed_range": [0, 10], "linkage_strategy": "independent"})
+        self.assertEqual(updated["confirmed_source_cells"], {"2026": {"sheet": "参数", "cell": "A1"}})
 
     def test_incomplete_rule_set_cannot_be_activated(self):
         service = self.service([rule(status="pending_confirmation", pending=True)])
@@ -586,6 +629,15 @@ class HistoricalTemplateReadOnlyTests(unittest.TestCase):
         self.assertEqual([item["rule_status"] for item in data["parameters"]], ["confirmed", "confirmed"])
         row = next(item for item in data["result_rows"] if item["name"] == "归母净利润")
         self.assertEqual(row["values"]["2026"], 100)
+
+    def test_selecting_a_template_makes_it_the_activity_template(self):
+        service = self.service()
+        selected = service.select_activity_template(1)
+        self.assertEqual(selected["fingerprint"], "0716-fingerprint")
+        data = service.initialize()
+        self.assertEqual(data["template"]["id"], 1)
+        self.assertTrue(data["template"]["activity"])
+        self.assertFalse(data["template"]["read_only"])
 
     def test_unknown_template_version_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "模板版本不存在"):

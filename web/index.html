@@ -24,7 +24,7 @@
         </div>
       </header>
       <div class="context-strip">
-        <b id="templateMeta">加载活动模板…</b><select id="templateSwitch" title="模板版本切换：历史版本只读追溯，不能发起新测算"></select><span id="templateMode" class="badge readonly" hidden>历史只读</span><span id="scenarioMeta">未命名草稿</span><span id="engineMeta">Excel COM / warm</span><span id="draftStatus" class="dirty"></span>
+        <b id="templateMeta">加载活动模板…</b><select id="templateSwitch" title="查看已导入模板"></select><button id="setCurrentTemplate" title="将所选模板设为当前可编辑模板（需要管理员登录）" hidden>设为当前模板</button><span id="templateMode" class="badge readonly" hidden>历史只读</span><span id="scenarioMeta">未命名草稿</span><span id="engineMeta">Excel COM / warm</span><span id="draftStatus" class="dirty"></span>
       </div>
       <div id="workspaceNotice" class="workspace-notice" hidden></div>
       <nav id="mobilePaneTabs" class="mobile-pane-tabs" aria-label="窄屏区域">
@@ -32,15 +32,15 @@
       </nav>
       <main id="workspace" class="workspace" data-mobile-pane="center">
         <aside id="leftPane" class="pane left-pane">
-          <div class="pane-head"><strong id="leftTitle">输入参数</strong><span id="adjustedCount" class="count">0 项已修改</span></div>
+          <div class="pane-head"><strong id="leftTitle">输入参数</strong><span class="pane-head-actions"><span id="adjustedCount" class="count">0 项已修改</span><button id="toggleLeftPane" type="button" title="隐藏输入参数">隐藏</button></span></div>
           <input id="search" class="search" placeholder="搜索输入指标" />
           <div class="filters"><select id="group"><option value="">全部分组</option></select><label><input type="checkbox" id="favorites" /> 星标</label><label><input type="checkbox" id="adjusted" /> 已修改</label><label><input type="checkbox" id="pending" /> 异常</label></div>
           <div class="status-legend"><span class="tag selected">已选</span><span class="tag edited">已修改</span><span class="tag constraint">约束</span><span class="tag result">已有结果</span><span class="tag error">异常</span></div>
           <div id="parameterTree" class="groups"></div>
         </aside>
         <div class="pane-resizer" data-resize="left" title="拖动调整；双击恢复"></div>
-        <section id="centerPane" class="pane center-pane">
-          <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><div id="centerViewToggle" class="layout-toggle"><button data-center-view="cards" class="active">卡片视图</button><button data-center-view="comparison">对比视图</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div></div>
+          <section id="centerPane" class="pane center-pane">
+          <div class="center-toolbar"><strong id="centerTitle">年度参数卡片</strong><select id="linkage"><option value="independent">独立调整</option><option value="same_delta">五年同幅</option><option value="same_value">五年同值</option><option value="baseline_ratio">按基准比例</option></select><div id="layoutToggle" class="layout-toggle"><button data-layout="horizontal" class="active">横向滑杆</button><button data-layout="vertical">纵向滑杆</button></div><div id="centerViewToggle" class="layout-toggle"><button data-center-view="cards" class="active">卡片视图</button><button data-center-view="comparison">对比视图</button></div><span class="spacer"></span><div id="cardPages" class="pages"></div><button id="toggleCenterPane" type="button" title="隐藏年度参数卡片">隐藏</button></div>
           <div id="constraintBuilder" class="constraint-builder" hidden>
             <strong>约束构建器</strong>
             <input id="cbSearch" placeholder="搜索指标" />
@@ -64,18 +64,19 @@
             <details><summary>规则追踪</summary><pre id="ruleDetails"></pre></details>
           </div>
         </section>
-        <div class="pane-resizer" data-resize="right" title="拖动调整；双击恢复"></div>
-        <aside id="rightPane" class="pane right-pane">
-          <div class="pane-head"><strong>结果与可信状态</strong><span id="statusBadge" class="badge pending">未计算</span></div>
-          <div id="trust" class="trust"></div>
-          <div id="taskProgress" class="task-progress" hidden><div id="taskStage">—</div><div id="taskMeta"></div><button id="cancelCalc">取消测算</button></div>
-          <div class="output-tools"><button id="engineValidation">引擎验证</button><button id="exportScenario">导出当前结果</button><button id="exportReverse" disabled>导出反向结果</button><button id="exportComparison" disabled>导出对比结果</button></div>
-          <div class="output-navigation"><input id="outputSearch" placeholder="搜索输出指标"><div id="outputGroups"></div></div>
-          <div id="cards" class="cards" hidden></div>
-          <details class="scenarios"><summary>命名场景</summary><div class="scenario-save"><input id="scenarioName" placeholder="场景名称" /><select id="scenarioType"><option value="custom">自定义</option><option value="baseline">基准</option><option value="optimistic">乐观</option><option value="pessimistic">悲观</option></select><button id="saveScenario">保存</button></div><div class="comparison-actions"><label><input type="checkbox" id="comparisonForce" /> 强制刷新</label><button id="startComparison">开始对比</button></div><div id="scenarioList"></div></details>
-          <details open><summary>C–J 完整指标结果</summary><div class="detail-filters"><input id="detailSearch" placeholder="搜索指标" /><select id="comparisonYear"><option value="">全部年度</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option></select><select id="comparisonGroup"><option value="">全部分组</option></select><select id="comparisonScenario"><option value="">全部场景</option></select></div><div id="details" class="details"></div></details>
+          <div class="pane-resizer" data-resize="right" title="拖动调整；双击恢复"></div>
+          <aside id="rightPane" class="pane right-pane">
+          <div class="pane-head"><strong>结果与可信状态</strong><span class="pane-head-actions"><span id="statusBadge" class="badge pending">未计算</span><button id="toggleRightPane" type="button" title="隐藏结果与可信状态">隐藏</button></span></div>
+          <section class="execution-status panel-scroll"><details open><summary>执行情况</summary></details><div class="panel-scroll-content"><div id="trust" class="trust"></div><div id="taskProgress" class="task-progress" hidden><div id="taskStage">—</div><div id="taskMeta"></div><button id="cancelCalc">取消测算</button></div><div class="output-tools"><button id="engineValidation">引擎验证</button><button id="exportScenario">导出当前结果</button><button id="exportReverse" disabled>导出反向结果</button><button id="exportComparison" disabled>导出对比结果</button></div><div id="cards" class="cards" hidden></div></div></section>
+          <div class="right-section-resizer" data-right-resize="execution" title="拖动调整执行情况高度"></div>
+          <section class="scenarios panel-scroll"><details><summary>命名场景</summary></details><div class="panel-scroll-content"><div class="scenario-save"><input id="scenarioName" placeholder="场景名称" /><select id="scenarioType"><option value="custom">自定义</option><option value="baseline">基准</option><option value="optimistic">乐观</option><option value="pessimistic">悲观</option></select><button id="saveScenario">保存</button></div><div class="comparison-actions"><label><input type="checkbox" id="comparisonForce" /> 强制刷新</label><button id="startComparison">开始对比</button></div><div id="scenarioList"></div></div></section>
+          <div class="right-section-resizer" data-right-resize="scenarios" title="拖动调整命名场景高度"></div>
+          <section class="results-details panel-scroll"><details open><summary>C–J 完整指标结果</summary></details><div class="panel-scroll-content"><div class="detail-filters"><input id="detailSearch" placeholder="搜索指标" /><button id="resetResultColumns" type="button">重置列宽</button></div><div id="details" class="details"></div></div></section>
           <details><summary>循环收敛与计算日志</summary><div id="calculationTrace" class="trace">尚未执行测算</div></details>
         </aside>
+        <button id="showLeftPane" class="pane-reveal pane-reveal-left" type="button" hidden>展开输入参数</button>
+        <button id="showCenterPane" class="pane-reveal pane-reveal-center" type="button" hidden>展开年度参数卡片</button>
+        <button id="showRightPane" class="pane-reveal pane-reveal-right" type="button" hidden>展开结果</button>
         <section id="rulesPane" class="pane rules-pane" hidden>
           <div class="center-toolbar"><strong>规则维护</strong><span class="spacer"></span><span class="rules-hint">普通用户只读；管理员可在页签内登录维护</span><button id="saveDisplayDefaults">管理员：保存当前展示项为全局默认</button></div>
           <iframe id="rulesFrame" title="规则集维护" src="/rules.html?embedded=1"></iframe>

@@ -41,9 +41,10 @@ async function load(templateVersionId = null) {
   state.comparison = null;
   stashActivityWorkspace();
   renderTemplateSwitch();
+  const templateLabel = state.data.template.filename || `模板 V${state.data.template.version}`;
   $("templateMeta").textContent = isReadOnly()
-    ? `历史模板 V${state.data.template.version} · ${state.data.template.fingerprint.slice(0, 10)} · 只读`
-    : `活动模板 V${state.data.template.version} · ${state.data.template.fingerprint.slice(0, 10)}`;
+    ? `历史模板 ${templateLabel} · 只读`
+    : `活动模板 ${templateLabel}`;
   if (!isReadOnly())
     state.persisted.shared.templateVersionId = state.data.template.id;
   $("engineMode").value = state.persisted.shared.engineMode || "warm_com";
@@ -63,7 +64,6 @@ async function load(templateVersionId = null) {
   renderTrust(state.data);
   setCards("");
   renderDetails(state.data.result_rows || state.data.details);
-  renderOutputNavigation();
   renderTrace(state.data.calculation_details);
   renderConstraintMetrics();
   $("exportReverse").disabled = true;
@@ -101,7 +101,7 @@ function applyTemplateMode() {
   $("workspaceNotice").textContent = readOnly
     ? `历史模板 V${state.data.template.version} 仅供追溯：数据与规则只读，不能发起新测算。`
     : blocked
-      ? "0717 活动模板尚未发布规则集。当前仅可查看基准值；请先在规则集维护中完成确认与激活。"
+      ? "当前活动模板尚未发布规则集。当前仅可查看基准值；请先在规则集维护中完成确认与激活。"
       : "";
   ["saveScenario", "resetOne"].forEach((id) => {
     $(id).disabled = readOnly;
@@ -113,10 +113,12 @@ function renderTemplateSwitch() {
   $("templateSwitch").innerHTML = templates
     .map(
       (item) =>
-        `<option value="${item.id}" ${item.id === state.data.template.id ? "selected" : ""}>模板 V${item.version} · ${item.fingerprint.slice(0, 10)}${item.activity ? "（活动）" : "（历史只读）"}</option>`,
+        `<option value="${item.id}" ${item.id === state.data.template.id ? "selected" : ""}>${item.filename || `模板 V${item.version}`} ${item.activity ? "（当前）" : "（历史只读）"}</option>`,
     )
     .join("");
   $("templateSwitch").disabled = templates.length < 2 || Boolean(state.task);
+  $("setCurrentTemplate").hidden = Boolean(state.data?.template?.activity);
+  $("setCurrentTemplate").disabled = Boolean(state.task);
   $("templateMode").hidden = !isReadOnly();
 }
 async function switchTemplate(id) {
@@ -132,6 +134,19 @@ async function switchTemplate(id) {
   } catch (error) {
     alert(error.message);
     renderTemplateSwitch();
+  }
+}
+async function setCurrentTemplate() {
+  const templateVersionId = Number($("templateSwitch").value);
+  if (!Number.isInteger(templateVersionId) || !confirm("将所选模板设为当前模板？后续测算将使用它。")) return;
+  try {
+    const response = await fetch("/api/templates/current", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({template_version_id: templateVersionId})});
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || "设置当前模板失败");
+    await load();
+    await loadScenarios();
+  } catch (error) {
+    alert(error.message);
   }
 }
 const RULE_ERROR_STATUSES = ["rejected", "unsupported"];
@@ -528,7 +543,6 @@ async function poll() {
           .join(""),
       );
       renderNav();
-      renderOutputNavigation();
     } else {
       state.data = { ...state.data, ...data };
       renderTrust(data);
@@ -538,7 +552,6 @@ async function poll() {
       renderTrace(data.calculation_details);
       renderConstraintMetrics();
       renderNav();
-      renderOutputNavigation();
       currentDraft().calculatedUnsaved = true;
       persistWorkbench(); updateDraftStatus();
     }
@@ -680,7 +693,7 @@ function renderDetails(details = []) {
   const entries = details.filter((entry) => entry.kind === "header" || !query || entry.name.toLowerCase().includes(query));
   const columns = ["name", "2025", "2026", "2027", "2028", "2029", "2030", "five_year_change", "cagr"];
   const labels = ["指标", "2025", "2026", "2027", "2028", "2029", "2030", "五年变化", "CAGR"];
-  const widths = currentDraft().columnWidths;
+  const widths = resultColumnWidths();
   $("details").innerHTML = `<div class="result-scroll"><table class="result-table"><colgroup>${widths.map((width) => `<col style="width:${width}px">`).join("")}</colgroup><thead><tr>${labels.map((label, index) => `<th>${label}<span class="col-resizer" data-col="${index}"></span></th>`).join("")}</tr></thead><tbody>${renderDetailEntries(entries, columns, query)}</tbody></table></div>`;
   setupColumnResize();
   document.querySelectorAll("[data-result-section]").forEach((el) => (el.onclick = () => {
@@ -697,6 +710,20 @@ function renderDetails(details = []) {
     persistWorkbench();
     renderDetails(details);
   }));
+}
+
+const RESULT_COLUMN_WIDTHS = [128, 66, 66, 66, 66, 66, 66, 84, 72];
+function resultColumnWidths() {
+  const draft = currentDraft();
+  if (!Array.isArray(draft.columnWidths) || draft.columnWidths.length !== RESULT_COLUMN_WIDTHS.length) {
+    draft.columnWidths = [...RESULT_COLUMN_WIDTHS];
+  }
+  return draft.columnWidths;
+}
+function resetResultColumns() {
+  currentDraft().columnWidths = [...RESULT_COLUMN_WIDTHS];
+  persistWorkbench();
+  state.comparison ? renderComparisonDetails() : renderDetails(filteredResultRows());
 }
 
 function isSectionCollapsed(draft, key) {
@@ -734,7 +761,7 @@ function resultRow(row, columns) {
   const cells = columns.slice(1).map((column) => {
     const value = row.values?.[column];
     const cls = resultValueClass(value, column);
-    return `<td${cls ? ` class="${cls}"` : ""}>${formatResultValue(value, column === "cagr" ? "%" : row.unit, row.precision)}</td>`;
+    return `<td${cls ? ` class="${cls}"` : ""}>${formatDetailResultValue(value, column === "cagr" ? "%" : row.unit, row.precision)}</td>`;
   }).join("");
   return `<tr${classes ? ` class="${classes}"` : ""}><td title="${row.name}"><span class="star ${starred ? "on" : ""}" data-rstar="${row.id}">${starred ? "★" : "☆"}</span><strong class="name${indent}">${row.name}</strong><small>${markers}</small></td>${cells}</tr>`;
 }
@@ -770,6 +797,16 @@ function formatResultValue(value, unit, precision) {
   return number.toFixed(2);
 }
 
+function formatDetailResultValue(value, unit, precision) {
+  if (unit === "%") return formatResultValue(value, unit, precision);
+  if (value === null || value === undefined || value === "") return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  const absolute = Math.abs(number);
+  const digits = absolute > 100 ? 0 : absolute >= 10 ? 1 : 2;
+  return number.toLocaleString("zh-CN", {minimumFractionDigits: digits, maximumFractionDigits: digits});
+}
+
 function rulePrecision(item) {
   const step = item?.rule?.minimum_step;
   if (typeof step !== "number" || !Number.isFinite(step) || step <= 0) return undefined;
@@ -779,18 +816,20 @@ function rulePrecision(item) {
 }
 
 function setupColumnResize() {
-  document.querySelectorAll("[data-col]").forEach((handle) => (handle.onmousedown = (event) => {
+  document.querySelectorAll("[data-col]").forEach((handle) => (handle.onpointerdown = (event) => {
     event.preventDefault();
-    const index = Number(handle.dataset.col), start = event.clientX, initial = currentDraft().columnWidths[index];
+    event.stopPropagation();
+    handle.setPointerCapture?.(event.pointerId);
+    const index = Number(handle.dataset.col), start = event.clientX, initial = resultColumnWidths()[index];
     const move = (next) => {
-      currentDraft().columnWidths[index] = Math.max(index === 0 ? 82 : 52, initial + next.clientX - start);
+      resultColumnWidths()[index] = Math.max(index === 0 ? 96 : 52, initial + next.clientX - start);
       const column = document.querySelectorAll(".result-table col")[index];
-      if (column) column.style.width = `${currentDraft().columnWidths[index]}px`;
+      if (column) column.style.width = `${resultColumnWidths()[index]}px`;
     };
     const up = () => {
-      removeEventListener("mousemove", move); removeEventListener("mouseup", up); persistWorkbench();
+      removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); persistWorkbench();
     };
-    addEventListener("mousemove", move); addEventListener("mouseup", up);
+    addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
   }));
 }
 function renderTrace(details) {
@@ -1000,10 +1039,7 @@ function renderReverseConstraints() {
       })
       .join("") || "<small>尚未添加约束</small>";
   bindConstraintGroupEvents();
-  if (state.data) {
-    renderNav();
-    renderOutputNavigation();
-  }
+  if (state.data) renderNav();
 }
 async function runReverse() {
   if (isReadOnly()) return alert("历史模板只读，不能发起反向测算");
@@ -1169,6 +1205,58 @@ function persistWorkbench() {
   WorkbenchState.save(state.persisted);
 }
 
+function applyPaneVisibility() {
+  [
+    ["left", "leftPane", "toggleLeftPane", "输入参数"],
+    ["center", "centerPane", "toggleCenterPane", "年度参数卡片"],
+    ["right", "rightPane", "toggleRightPane", "结果与可信状态"],
+  ].forEach(([side, paneId, buttonId, label]) => {
+    const collapsed = Boolean(state.persisted.shared[`${side}PaneCollapsed`]);
+    $("workspace").classList.toggle(`${side}-pane-collapsed`, collapsed);
+    $(paneId).classList.toggle("collapsed", collapsed);
+    $(buttonId).textContent = collapsed ? "展开" : "隐藏";
+    $(buttonId).title = `${collapsed ? "展开" : "隐藏"}${label}`;
+    $(`show${side[0].toUpperCase()}${side.slice(1)}Pane`).hidden = !collapsed;
+  });
+}
+
+function rightPanelHeights() {
+  const shared = state.persisted.shared;
+  const saved = shared.rightPanelHeights || {};
+  return {
+    execution: Math.max(100, Number(saved.execution) || 200),
+    scenarios: Math.max(72, Number(saved.scenarios) || 120),
+  };
+}
+
+function applyRightPanelHeights() {
+  const heights = rightPanelHeights();
+  $("rightPane").style.setProperty("--execution-panel-height", `${heights.execution}px`);
+  $("rightPane").style.setProperty("--scenario-panel-height", `${heights.scenarios}px`);
+}
+
+function setupRightPanelResize() {
+  document.querySelectorAll("[data-right-resize]").forEach((handle) => (handle.onpointerdown = (event) => {
+    event.preventDefault();
+    handle.setPointerCapture?.(event.pointerId);
+    const key = handle.dataset.rightResize;
+    const minimum = key === "execution" ? 100 : 72;
+    const maximum = key === "execution" ? 420 : 320;
+    const start = event.clientY;
+    const initial = rightPanelHeights()[key];
+    const move = (next) => {
+      const height = Math.max(minimum, Math.min(maximum, initial + next.clientY - start));
+      state.persisted.shared.rightPanelHeights = {...rightPanelHeights(), [key]: height};
+      applyRightPanelHeights();
+    };
+    const up = () => {
+      removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up);
+      persistWorkbench();
+    };
+    addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  }));
+}
+
 function syncReverseDraft() {
   currentDraft().constraints = state.reverseConstraints;
   currentDraft().variables = state.reverseVariables;
@@ -1186,7 +1274,6 @@ function loadModuleDraft(module) {
   if (selectedId && state.data.parameters.some((item) => item.id === selectedId)) select(selectedId);
   else state.selected = null;
   renderNav();
-  renderOutputNavigation();
   renderReverseConstraints();
   renderReverseVariables();
   setCalculateEnabled();
@@ -1350,7 +1437,7 @@ function parameterCard(id) {
             : constraintCardBody(state.reverseConstraints[constraintIndex], constraintIndex)
           : "<p>选择后可添加为变量或约束</p>";
   const subtitle = kind === "variable" ? `搜索范围 · ${item.unit || ""}` : kind === "constraint" ? `约束目标 · ${item.unit || ""}` : `${item.group} · ${item.unit || ""}`;
-  return `<article class="work-card ${kind} ${state.selected?.id === id ? "selected" : ""}" draggable="true" data-card="${id}"><div class="work-card-head">${kind ? `<span class="card-kind">${kind === "variable" ? "变量" : "约束"}</span>` : ""}<div><h3>${item.name}</h3><small>${subtitle}</small></div><span class="spacer"></span><button data-open-card="${id}">高级</button><button data-remove-card="${id}">×</button></div><div class="work-card-body">${body}</div><div class="work-card-actions"><button data-move="${id}|-1">前移</button><button data-move="${id}|1">后移</button><button data-reset-card="${id}">恢复基准</button></div></article>`;
+  return `<article class="work-card ${kind} ${state.selected?.id === id ? "selected" : ""}" draggable="true" data-card="${id}"><div class="work-card-head">${kind ? `<span class="card-kind">${kind === "variable" ? "变量" : "约束"}</span>` : ""}<div><h3 title="${item.name}">${item.name}</h3><small>${subtitle}</small></div><span class="spacer"></span><button data-open-card="${id}">高级</button><button data-remove-card="${id}">×</button></div><div class="work-card-body">${body}</div><div class="work-card-actions"><details class="card-sort-menu"><summary>排序</summary><div><button data-move="${id}|-1">前移</button><button data-move="${id}|1">后移</button></div></details><span class="spacer"></span><button data-reset-card="${id}">恢复基准</button></div></article>`;
 }
 function orphanConstraintCard(constraint, index) {
   return `<article class="work-card constraint" data-con-card="${index}"><div class="work-card-head"><span class="card-kind">约束</span><div><h3>${constraint.indicator_name}</h3><small>约束目标 · 未选指标</small></div><span class="spacer"></span><button data-remove-constraint="${index}">×</button></div><div class="work-card-body">${constraintCardBody(constraint, index)}</div></article>`;
@@ -1594,61 +1681,8 @@ function updateDraftStatus() {
   $("draftStatus").textContent = dirty ? `● ${state.persisted.restored ? "已恢复的" : ""}未保存草稿` : "";
 }
 
-function outputRelevant(row) {
-  return Boolean(
-    currentDraft().outputSelection.includes(row.id) ||
-    state.data.display_defaults?.outputs?.includes(row.id) ||
-    activeReverseConstraints().some((x) => x.indicator_name === row.name)
-  );
-}
-function outputStateDots(row) {
-  const hasValues = years.some((year) =>
-    Number.isFinite(Number(row.values?.[year])),
-  );
-  const valid = state.data.trust?.status === "valid";
-  return stateDots([
-    [currentDraft().outputSelection.includes(row.id), "selected", "已选"],
-    [
-      state.reverseConstraints.some((x) => x.indicator_name === row.name),
-      "constraint",
-      "约束",
-    ],
-    [valid && hasValues, "result", "已有结果"],
-    [
-      (activeReverseConstraints().some((x) => x.indicator_name === row.name) &&
-        constraintMissed(row.name)) ||
-        (valid && !hasValues),
-      "error",
-      "异常",
-    ],
-  ]);
-}
-function renderOutputNavigation() {
-  const query = ($("outputSearch")?.value || "").toLowerCase();
-  const rows = (state.data?.result_rows || []).filter((row) => row.kind !== "header");
-  const groups = {};
-  rows.filter((row) => !query || row.name.toLowerCase().includes(query)).forEach((row) => (groups[row.group || "未分组"] ??= []).push(row));
-  $("outputGroups").innerHTML = Object.entries(groups).map(([group, items]) => {
-    const key = `output:${group}`, relevant = items.some(outputRelevant);
-    const open = Boolean(query || relevant || currentDraft().openGroups[key]);
-    const total = rows.filter((row) => (row.group || "未分组") === group).length;
-    const relevantCount = items.filter(outputRelevant).length;
-    return `<section class="output-group"><button data-output-group="${key}">${open ? "−" : "+"} ${group}<span>${items.length}/${total} 项 · ${relevantCount} 相关</span></button>${open ? `<div class="output-metrics">${items.map((item) => `<label><input type="checkbox" data-output="${item.id}" ${currentDraft().outputSelection.includes(item.id) ? "checked" : ""}> ${item.name}${outputStateDots(item)}</label>`).join("")}</div>` : ""}</section>`;
-  }).join("");
-  document.querySelectorAll("[data-output-group]").forEach((button) => (button.onclick = () => {
-    currentDraft().openGroups[button.dataset.outputGroup] = !currentDraft().openGroups[button.dataset.outputGroup]; persistWorkbench(); renderOutputNavigation();
-  }));
-  document.querySelectorAll("[data-output]").forEach((input) => (input.onchange = () => {
-    const id = input.dataset.output;
-    currentDraft().outputSelection = input.checked ? [...new Set([...currentDraft().outputSelection, id])] : currentDraft().outputSelection.filter((item) => item !== id);
-    persistWorkbench(); renderDetails(filteredResultRows()); renderOutputNavigation();
-  }));
-}
-
 function filteredResultRows() {
-  const rows = state.data?.result_rows || [];
-  const selection = currentDraft().outputSelection;
-  return selection.length ? rows.filter((row) => row.kind === "header" || selection.includes(row.id)) : rows;
+  return state.data?.result_rows || [];
 }
 
 async function protectDraftBeforeSwitch() {
@@ -1736,6 +1770,24 @@ function initializeUnifiedWorkbench() {
     $("engineMeta").textContent = `Excel COM / ${$("engineMode").value.replace("_com", "")}`;
     persistWorkbench();
   };
+  [["left", "toggleLeftPane"], ["center", "toggleCenterPane"], ["right", "toggleRightPane"]].forEach(([side, buttonId]) => {
+    $(buttonId).onclick = () => {
+      state.persisted.shared[`${side}PaneCollapsed`] = !state.persisted.shared[`${side}PaneCollapsed`];
+      applyPaneVisibility();
+      persistWorkbench();
+      renderCardPages();
+      renderCardGrid();
+    };
+  });
+  [["left", "showLeftPane"], ["center", "showCenterPane"], ["right", "showRightPane"]].forEach(([side, buttonId]) => {
+    $(buttonId).onclick = () => {
+      state.persisted.shared[`${side}PaneCollapsed`] = false;
+      applyPaneVisibility();
+      persistWorkbench();
+      renderCardPages();
+      renderCardGrid();
+    };
+  });
   $("saveDisplayDefaults").onclick = async () => {
     const response = await fetch("/api/display-defaults", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({inputs: state.persisted.drafts.forward.selected, outputs: currentDraft("forward").outputSelection})});
     const data = await response.json();
@@ -1743,7 +1795,10 @@ function initializeUnifiedWorkbench() {
     alert("全局默认展示项已保存");
   };
   $("workspace").dataset.mobilePane = state.persisted.mobilePane;
+  applyPaneVisibility();
+  applyRightPanelHeights();
   setupPaneResize();
+  setupRightPanelResize();
   switchModule(state.module);
 }
 const SCENARIO_TYPE_LABELS = {
@@ -1872,16 +1927,6 @@ function renderComparison(data) {
       )
       .join("") || '<div class="empty">没有可对比的核心指标</div>',
   );
-  $("comparisonGroup").innerHTML =
-    '<option value="">全部分组</option>' +
-    [...new Set(data.details.map((x) => x.group))]
-      .map((x) => `<option>${x}</option>`)
-      .join("");
-  $("comparisonScenario").innerHTML =
-    '<option value="">全部场景</option>' +
-    data.scenarios
-      .map((x) => `<option value="${x.scenario_id}">${x.name}</option>`)
-      .join("");
   renderComparisonDetails();
   renderTrace(data.calculation_details);
 }
@@ -1925,22 +1970,17 @@ function exportReverseResult() {
 }
 function renderComparisonDetails() {
   if (!state.comparison) return;
-  const query = $("detailSearch").value.toLowerCase(),
-    year = $("comparisonYear").value,
-    group = $("comparisonGroup").value,
-    scenario = $("comparisonScenario").value;
+  const query = $("detailSearch").value.toLowerCase();
   $("details").innerHTML = state.comparison.details
     .filter(
       (metric) =>
-        (!query || metric.name.toLowerCase().includes(query)) &&
-        (!group || metric.group === group),
+        !query || metric.name.toLowerCase().includes(query),
     )
     .map(
       (metric) =>
         `<div class="comparison-detail"><strong>${metric.name} <small>· ${metric.group}</small></strong>${metric.scenarios
-          .filter((sc) => !scenario || sc.scenario_id === scenario)
           .map((sc) => {
-            const visibleYears = year ? [year] : years.map(String);
+            const visibleYears = years.map(String);
             return `<div class="comparison-detail-row"><span>${sc.name}</span><span>${sc.values ? visibleYears.map((item) => `${item} ${sc.values[item] ?? "—"} (Δ ${sc.differences?.[item] ?? "—"})`).join(" · ") : "无有效结果"}</span></div>`;
           })
           .join("")}</div>`,
@@ -2179,10 +2219,8 @@ $("detailSearch").oninput = () =>
     : renderDetails(filteredResultRows());
 $("templateSwitch").onchange = () =>
   switchTemplate(Number($("templateSwitch").value));
-$("outputSearch").oninput = renderOutputNavigation;
-["comparisonYear", "comparisonGroup", "comparisonScenario"].forEach(
-  (id) => ($(id).oninput = renderComparisonDetails),
-);
+$("setCurrentTemplate").onclick = setCurrentTemplate;
+$("resetResultColumns").onclick = resetResultColumns;
 let gridResizeTimer = null;
 new ResizeObserver(() => {
   clearTimeout(gridResizeTimer);
