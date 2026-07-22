@@ -1156,6 +1156,19 @@ function setupConstraintBuilder() {
   $("cbScope").onchange = renderConstraintValueInputs;
   $("cbYear").onchange = renderConstraintValueInputs;
   $("cbAdd").onclick = addConstraintGroup;
+  $("cbBudget").oninput = () => {
+    currentDraft().reverseBudget = Number($("cbBudget").value) > 0 ? Math.round(Number($("cbBudget").value)) : null;
+    renderReverseEta();
+  };
+  $("cbBudget").onchange = () => {
+    const { min, max } = reverseBudgetConfig(),
+      raw = Number($("cbBudget").value);
+    if (Number.isFinite(raw) && raw > 0 && (raw < min || raw > max)) {
+      $("cbBudget").value = Math.min(max, Math.max(min, Math.round(raw)));
+      currentDraft().reverseBudget = Number($("cbBudget").value);
+    }
+    renderReverseEta();
+  };
   renderConstraintValueInputs();
 }
 function renderReverseConstraints() {
@@ -1194,7 +1207,7 @@ async function runReverse() {
       },
       adjustments: payload(),
       constraints: state.reverseConstraints,
-      max_evaluations: 25,
+      max_evaluations: reverseBudget(),
       engine_mode: $("engineMode").value,
     };
   persistWorkbench();
@@ -1262,12 +1275,12 @@ async function runReverseV2() {
           variables: state.reverseVariables,
           adjustments: payload(),
           constraints: state.reverseConstraints,
-          max_evaluations: 15,
+          max_evaluations: reverseBudget(),
           engine_mode: $("engineMode").value,
         }),
       }),
       task = await response.json();
-    if (!response.ok) throw Error(task.error || "v2 反推提交失败");
+    if (!response.ok) throw Error(task.error || "求解提交失败");
     state.task = task.task_id;
     renderTaskProgress(task);
     setTimeout(poll, 500);
@@ -1404,6 +1417,25 @@ function switchModule(module) {
   persistWorkbench();
 }
 
+function reverseBudgetConfig() {
+  return state.module === "multi" ? { def: 15, min: 2, max: 20 } : { def: 25, min: 3, max: 99 };
+}
+function reverseBudget() {
+  const { def, min, max } = reverseBudgetConfig(),
+    raw = Number($("cbBudget")?.value);
+  if (!Number.isFinite(raw) || raw <= 0) return def;
+  return Math.min(max, Math.max(min, Math.round(raw)));
+}
+function renderReverseEta() {
+  if (!$("cbEta")) return;
+  const budget = reverseBudget(),
+    cold = $("engineMode").value !== "warm_com",
+    lo = Math.round(budget * (cold ? 8 : 0.6)),
+    hi = Math.round(budget * (cold ? 19 : 1.5)),
+    over = cold && hi > 15;
+  $("cbEta").textContent = `约 ${lo}–${hi} 秒${over ? " · 超 PRD 15 秒预期，建议 warm 引擎或降低预算" : ""}`;
+  $("cbEta").classList.toggle("warn", over);
+}
 function updateReverseVisibility() {
   document.querySelectorAll("details.reverse").forEach((item) => {
     item.hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
@@ -1411,6 +1443,13 @@ function updateReverseVisibility() {
   });
   $("constraintBuilder").hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
   const forward = state.module === "forward";
+  if (!forward && state.module !== "rules" && $("cbBudget")) {
+    const { def, min, max } = reverseBudgetConfig();
+    $("cbBudget").min = min;
+    $("cbBudget").max = max;
+    $("cbBudget").value = currentDraft().reverseBudget ?? def;
+    renderReverseEta();
+  }
   $("calculate").hidden = !forward;
   $("calculate").onclick = forward ? calculate : null;
   $("calculateTop").textContent = forward ? "执行测算" : "开始求解";
@@ -1926,6 +1965,7 @@ function initializeUnifiedWorkbench() {
   $("engineMode").onchange = () => {
     state.persisted.shared.engineMode = $("engineMode").value;
     $("engineMeta").textContent = `Excel COM / ${$("engineMode").value.replace("_com", "")}`;
+    renderReverseEta();
     persistWorkbench();
   };
   [["left", "toggleLeftPane"], ["center", "toggleCenterPane"], ["right", "toggleRightPane"]].forEach(([side, buttonId]) => {

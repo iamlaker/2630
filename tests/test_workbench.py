@@ -290,6 +290,21 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("indicator_id === key", app)
         self.assertIn(".path-step", css)
 
+    def test_search_budget_configurable_and_eta(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 测算预算可配并随请求发送；前端不再硬编码 25/15
+        self.assertIn('id="cbBudget"', html)
+        self.assertIn('id="cbEta"', html)
+        self.assertIn("function reverseBudget(", app)
+        self.assertIn("max_evaluations: reverseBudget()", app)
+        self.assertNotIn("max_evaluations: 25", app)
+        self.assertNotIn("max_evaluations: 15", app)
+        # 按引擎模式给出耗时预估，cold 超 PRD 15 秒给警示
+        self.assertIn("超 PRD 15 秒预期", app)
+        self.assertIn(".cb-eta.warn", css)
+
     def test_variable_config_single_surface(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         # 变量卡卡面全字段：步长、联动、优先级步进器、删除
