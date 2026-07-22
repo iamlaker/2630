@@ -97,6 +97,24 @@
 .priority-stepper b { font-size: 11px; min-width: 20px; text-align: center; }
 .priority-stepper button { padding: 2px 8px; font-size: 11px; }
 .variable-remove { font-size: 10px; color: #a33; border-color: #e0c0c0; }
+.reverse-banner { display: flex; align-items: center; gap: 10px; margin: 8px; padding: 10px 12px; border-radius: 6px; font-size: 12px; }
+.reverse-banner.ok { background: #e8f5ee; border: 1px solid #bfe0cd; color: #1d6b45; }
+.reverse-banner.fail { background: #fbecea; border: 1px solid #eec5bf; color: #a03024; }
+.reverse-banner span { color: var(--muted); }
+.reverse-banner button { margin-left: auto; }
+.reverse-section-title { margin: 10px 10px 4px; font-size: 12px; }
+.reverse-table { width: calc(100% - 16px); margin: 0 8px 6px; border-collapse: collapse; font-size: 11px; }
+.reverse-table th, .reverse-table td { padding: 4px 6px; border-bottom: 1px solid #edf1ef; text-align: right; }
+.reverse-table th { color: var(--muted); font-weight: 500; }
+.reverse-table th:first-child, .reverse-table td:first-child { text-align: left; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reverse-table tr.missed td { background: #fdf3f2; color: #a03024; }
+.reverse-table tr.disabled td { color: var(--muted); }
+.reverse-table td.strong { font-weight: 600; }
+.reverse-reason { padding: 2px 12px; font-size: 10px; color: var(--muted); }
+.reverse-diagnosis { margin: 8px; padding: 10px 12px; border: 1px dashed #e0b08a; border-radius: 6px; background: #fdf8f2; font-size: 11px; }
+.reverse-diagnosis h3 { margin: 0 0 6px; font-size: 12px; }
+.diag-block { margin: 6px 0; line-height: 1.5; }
+.diag-block b { display: block; margin-bottom: 2px; }
 .constraint-group-summary .cg-head { font-size: 11px; font-weight: 600; color: var(--teal); margin-bottom: 6px; }
 .constraint-group-summary .cg-year { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed #edf1ef; }
 .constraint-group-summary .cg-year label { color: var(--muted); font: 10px Consolas, monospace; }

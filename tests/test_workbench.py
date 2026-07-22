@@ -158,7 +158,7 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("renderTemplateSwitch", app)
         self.assertIn("historical_read_only", app)
         self.assertIn("isReadOnly()", app)
-        self.assertIn("启用原因", app)
+        self.assertIn("reverse-reason", app)
         self.assertIn(".badge.readonly", css)
 
     def test_card_inline_sliders_and_inline_reverse_config(self):
@@ -258,7 +258,26 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("单变量求解 第", app)
         self.assertIn("多输入求解 第", app)
         self.assertIn("次测算`", app)
-        self.assertIn("求解摘要", app)
+
+    def test_reverse_result_page_and_no_feasible_diagnosis(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 结论横幅 + 变量建议表 + 约束满足表 + 无解诊断
+        self.assertIn("function renderReverseResultCards(", app)
+        self.assertIn("reverse-banner", app)
+        self.assertIn("变量建议", app)
+        self.assertIn("约束满足", app)
+        self.assertIn("function reverseNoFeasibleDiagnosis(", app)
+        self.assertIn("no_feasible_reason", app)
+        self.assertIn("已顶到搜索边界", app)
+        self.assertIn("转为软目标", app)
+        # 约束组按年份合并为区间行
+        self.assertIn("function reverseConstraintRows(", app)
+        # 横幅内导出按钮转发到既有导出逻辑
+        self.assertIn("exportReverseInline", app)
+        self.assertIn(".reverse-banner", css)
+        self.assertIn(".reverse-table", css)
+        self.assertIn(".reverse-diagnosis", css)
 
     def test_variable_config_single_surface(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")

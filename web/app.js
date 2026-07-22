@@ -556,21 +556,7 @@ async function poll() {
       $("exportReverse").disabled = !data.scenario_draft;
       renderTrust(data);
       renderTrace(data.calculation_details);
-      setCards(
-        (data.variables || [data.variable])
-          .map(
-            (x) =>
-              `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${formatResultValue(x.suggested_value ?? x.required_value, unitForIndicator(x.indicator_name)) || "—"}</div><div class="years-mini">调整 ${formatResultValue(x.adjustment, unitForIndicator(x.indicator_name)) || "—"} · ${x.hit_boundary ? "触及边界" : "范围内"}</div>${x.reason ? `<div class="years-mini reason">启用原因：${x.reason}</div>` : ""}</article>`,
-          )
-          .join("") +
-        `<article class="card"><h3>求解摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${formatResultValue(data.soft_deviation) || "—"}</div></article>` +
-        data.constraints
-          .map(
-            (x) =>
-              `<article class="card"><h3>${x.indicator_name}</h3><div class="metric">${x.hit ? "命中" : "未命中"}</div><div class="years-mini">实际 ${x.actual ?? "—"} · 偏差 ${x.deviation}</div></article>`,
-          )
-          .join(""),
-      );
+      setCards(renderReverseResultCards(data));
       renderNav();
     } else {
       state.data = { ...state.data, ...data };
@@ -716,6 +702,90 @@ function renderTrust(data) {
 function setCards(html) {
   $("cards").innerHTML = html || "";
   $("cards").hidden = !html;
+  const inlineExport = $("exportReverseInline");
+  if (inlineExport) inlineExport.onclick = () => $("exportReverse").click();
+}
+function reverseResultNumber(value, unit, signed = false) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  const number = Number(value);
+  if (signed && number > 0) return `+${formatDetailResultValue(number, unit)}`;
+  return formatDetailResultValue(number, unit);
+}
+function reverseVariableBaseline(x) {
+  if (Number.isFinite(x.baseline_value)) return x.baseline_value;
+  const param = (state.data?.parameters || []).find((p) => p.id === x.indicator_id || p.name === x.indicator_name),
+    raw = param?.baseline?.[String(x.year || "2030")];
+  return Number.isFinite(Number(raw)) ? Number(raw) : null;
+}
+function reverseConstraintRows(constraints) {
+  const groups = new Map();
+  (constraints || []).forEach((c) => {
+    const key = c.group_id || `__single__${c.indicator_id || c.indicator_name}|${c.year}|${c.kind}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  });
+  const rows = [];
+  groups.forEach((records) => {
+    const byYear = new Map();
+    records.forEach((c) => {
+      const year = String(c.year);
+      if (!byYear.has(year)) byYear.set(year, []);
+      byYear.get(year).push(c);
+    });
+    [...byYear.entries()].sort(([a], [b]) => Number(a) - Number(b)).forEach(([year, recs]) => {
+      const lower = recs.find((r) => r.kind === "min"),
+        upper = recs.find((r) => r.kind === "max"),
+        first = recs[0],
+        symbol = (r) => (r.relation && r.relation !== "between" ? r.relation : r.kind === "min" ? "≥" : r.kind === "max" ? "≤" : "="),
+        target = lower && upper ? `[${lower.value}, ${upper.value}]` : `${symbol(first)} ${first.value}`,
+        enabled = recs.some((r) => r.enabled !== false);
+      rows.push({
+        label: first.group_label || first.indicator_name,
+        indicator_name: first.indicator_name,
+        year,
+        target,
+        enabled,
+        actual: recs.find((r) => r.actual != null)?.actual ?? null,
+        deviation: Math.max(...recs.map((r) => Number(r.deviation) || 0)),
+        hit: recs.every((r) => r.hit === true),
+        pending: recs.some((r) => r.hit == null),
+        hard: first.hard !== false,
+      });
+    });
+  });
+  return rows;
+}
+function reverseNoFeasibleDiagnosis(data, constraintRows, variables) {
+  if (data.feasible) return "";
+  const missed = constraintRows.filter((r) => r.enabled && !r.hit).sort((a, b) => b.deviation - a.deviation),
+    boundary = variables.filter((x) => x.hit_boundary),
+    parts = [];
+  if (missed.length)
+    parts.push(`<div class="diag-block"><b>约束缺口（按偏差排序）</b>${missed.map((r) => `<div>${r.indicator_name} ${r.year}：目标 ${r.target}，实际 ${reverseResultNumber(r.actual, unitForIndicator(r.indicator_name))}，差 ${reverseResultNumber(r.deviation, unitForIndicator(r.indicator_name))}</div>`).join("")}</div>`);
+  if (boundary.length)
+    parts.push(`<div class="diag-block"><b>搜索边界</b>${boundary.map((x) => `<div>${x.indicator_name} 已顶到搜索边界，建议放宽该变量的搜索范围或降低约束要求</div>`).join("")}</div>`);
+  if (missed.length && missed.every((r) => r.hard))
+    parts.push(`<div class="diag-block">全部未命中约束均为硬约束：可将部分约束转为软目标以获得近似解。</div>`);
+  if (data.no_feasible_reason)
+    parts.push(`<div class="diag-block"><b>求解器说明</b>${data.no_feasible_reason}</div>`);
+  return parts.length ? `<div class="reverse-diagnosis"><h3>无解诊断</h3>${parts.join("")}</div>` : "";
+}
+function renderReverseResultCards(data) {
+  const maxEval = data.calculation_details?.max_evaluations || data.search_count,
+    variables = (data.variables || [data.variable]).filter(Boolean),
+    banner = `<div class="reverse-banner ${data.feasible ? "ok" : "fail"}"><strong>${data.feasible ? "求解可行" : "无可行解"}</strong><span>${data.search_count}/${maxEval} 次测算 · 软偏差 ${reverseResultNumber(data.soft_deviation)}</span>${data.feasible && data.scenario_draft ? '<button id="exportReverseInline" class="primary">导出反向结果</button>' : ""}</div>`,
+    variableTable = `<h3 class="reverse-section-title">变量建议</h3><table class="reverse-table"><thead><tr><th>变量</th><th>P</th><th>基准值</th><th>建议值</th><th>调整量</th><th>边界</th></tr></thead><tbody>${variables.map((x) => {
+      const unit = unitForIndicator(x.indicator_name),
+        unused = /未启用/.test(x.reason || "");
+      return `<tr><td title="${x.indicator_name}">${x.indicator_name}</td><td>P${x.priority || 1}</td><td>${reverseResultNumber(reverseVariableBaseline(x), unit)}</td><td class="strong">${reverseResultNumber(x.suggested_value ?? x.required_value, unit)}</td><td>${unused ? "未启用" : reverseResultNumber(x.adjustment, unit, true)}</td><td>${x.hit_boundary ? "触及" : "—"}</td></tr>`;
+    }).join("")}</tbody></table>`,
+    reasons = variables.filter((x) => x.reason).map((x) => `<div class="reverse-reason"><b>${x.indicator_name}</b>：${x.reason}</div>`).join(""),
+    constraintRows = reverseConstraintRows(data.constraints),
+    constraintTable = `<h3 class="reverse-section-title">约束满足</h3><table class="reverse-table"><thead><tr><th>约束</th><th>年份</th><th>目标</th><th>实际</th><th>偏差</th><th>结果</th></tr></thead><tbody>${constraintRows.map((r) => {
+      const unit = unitForIndicator(r.indicator_name);
+      return `<tr class="${!r.enabled ? "disabled" : r.hit ? "" : "missed"}"><td title="${r.label}">${r.label}</td><td>${r.year}</td><td>${r.target}</td><td>${reverseResultNumber(r.actual, unit)}</td><td>${r.enabled ? reverseResultNumber(r.deviation, unit) : "—"}</td><td>${!r.enabled ? "已停用" : r.pending ? "—" : r.hit ? "命中" : "未命中"}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  return banner + variableTable + reasons + constraintTable + reverseNoFeasibleDiagnosis(data, constraintRows, variables);
 }
 function renderDetails(details = []) {
   const query = $("detailSearch").value.toLowerCase();
