@@ -225,6 +225,15 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         # 样式
         self.assertIn(".constraint-builder", css)
 
+    def test_reverse_run_button_unbound_from_forward_edits(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # 反向模块解禁依据变量与启用约束，而非正向编辑 state.edits
+        self.assertIn("function reverseRunAvailability(", app)
+        self.assertIn("activeReverseConstraints().length", app)
+        self.assertIn("state.reverseVariables.length > 0", app)
+        # 卡片重渲染（约束/变量/选中变化的总出口）后刷新运行按钮状态
+        self.assertIn("bindCardConfigEvents();\n  setCalculateEnabled();", app)
+
     def test_forward_comparison_center_canvas_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")

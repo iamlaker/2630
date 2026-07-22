@@ -395,14 +395,41 @@ function payload() {
     return { rule_id: item.rule.rule_id, indicator_id: id, values };
   });
 }
+function reverseRunAvailability() {
+  if (state.module !== "single" && state.module !== "multi") return null;
+  if (isReadOnly()) return { ok: false, reason: "历史模板只读，不能发起求解" };
+  if (!state.data?.rule_set?.active)
+    return { ok: false, reason: "活动模板尚未发布规则集，不能发起求解" };
+  const hasVariable =
+    state.module === "single"
+      ? Boolean(state.selected?.rule)
+      : state.reverseVariables.length > 0;
+  if (!hasVariable)
+    return {
+      ok: false,
+      reason:
+        state.module === "single"
+          ? "请在左栏选择一个已确认指标作为求解变量"
+          : "请先至少添加一个变量",
+    };
+  if (!activeReverseConstraints().length)
+    return { ok: false, reason: "请至少添加一条启用的约束" };
+  return { ok: true, reason: "" };
+}
 function setCalculateEnabled() {
-  const enabled = Boolean(
-    !isReadOnly() &&
-    state.data?.rule_set?.active &&
-    Object.keys(state.edits).length,
-  );
-  $("calculate").disabled = !enabled;
-  $("calculateTop").disabled = !enabled;
+  const reverse = reverseRunAvailability();
+  const enabled = reverse
+    ? reverse.ok
+    : Boolean(
+        !isReadOnly() &&
+        state.data?.rule_set?.active &&
+        Object.keys(state.edits).length,
+      );
+  const reason = reverse && !reverse.ok ? reverse.reason : "";
+  ["calculate", "calculateTop"].forEach((id) => {
+    $(id).disabled = !enabled;
+    $(id).title = reason;
+  });
 }
 const STATUS_LABELS = {
   valid: "有效",
@@ -435,12 +462,14 @@ function stageLabel(stage) {
   return STAGE_LABELS[stage] || stage;
 }
 function setRunning(running) {
-  ["calculate", "calculateTop"].forEach((id) => {
-    $(id).disabled =
-      running ||
-      isReadOnly() ||
+  const reverse = reverseRunAvailability();
+  const unavailable = reverse
+    ? !reverse.ok
+    : isReadOnly() ||
       !state.data?.rule_set?.active ||
       !Object.keys(state.edits).length;
+  ["calculate", "calculateTop"].forEach((id) => {
+    $(id).disabled = running || unavailable;
   });
   $("taskProgress").hidden = !running;
   if (state.data?.templates) renderTemplateSwitch();
@@ -1655,6 +1684,7 @@ function renderCardGrid() {
     };
   });
   bindCardConfigEvents();
+  setCalculateEnabled();
 }
 
 function removeCard(id) {
