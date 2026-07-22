@@ -279,6 +279,17 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn(".reverse-table", css)
         self.assertIn(".reverse-diagnosis", css)
 
+    def test_v2_adjustment_path_timeline(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # v2 结果区展示调整路径步骤条；仅 v2（data.variables）渲染，空路径有提示
+        self.assertIn("function reverseAdjustmentPath(", app)
+        self.assertIn("adjustment_path", app)
+        self.assertIn("硬缺口", app)
+        self.assertIn("未发生调整", app)
+        self.assertIn("indicator_id === key", app)
+        self.assertIn(".path-step", css)
+
     def test_variable_config_single_surface(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         # 变量卡卡面全字段：步长、联动、优先级步进器、删除

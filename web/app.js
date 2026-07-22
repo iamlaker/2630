@@ -770,6 +770,18 @@ function reverseNoFeasibleDiagnosis(data, constraintRows, variables) {
     parts.push(`<div class="diag-block"><b>求解器说明</b>${data.no_feasible_reason}</div>`);
   return parts.length ? `<div class="reverse-diagnosis"><h3>无解诊断</h3>${parts.join("")}</div>` : "";
 }
+function reverseAdjustmentPath(data, variables) {
+  if (!data.variables) return "";
+  const path = data.adjustment_path || [];
+  if (!path.length)
+    return `<h3 class="reverse-section-title">调整路径</h3><div class="reverse-path"><div class="path-empty">未发生调整</div></div>`;
+  const nameOf = (key) => variables.find((v) => v.indicator_id === key)?.indicator_name || key;
+  return `<h3 class="reverse-section-title">调整路径</h3><div class="reverse-path">${path.map((step) => {
+    const name = nameOf(step.key),
+      unit = unitForIndicator(name);
+    return `<div class="path-step"><span class="path-order">${step.order}</span><span class="path-what"><b>P${step.priority} ${name}</b> ${reverseResultNumber(step.from_value, unit)} → ${reverseResultNumber(step.to_value, unit)}</span><span class="path-effect">硬缺口 ${reverseResultNumber(step.hard_violation_before)} → ${reverseResultNumber(step.hard_violation_after)}</span></div>`;
+  }).join("")}</div>`;
+}
 function renderReverseResultCards(data) {
   const maxEval = data.calculation_details?.max_evaluations || data.search_count,
     variables = (data.variables || [data.variable]).filter(Boolean),
@@ -785,7 +797,7 @@ function renderReverseResultCards(data) {
       const unit = unitForIndicator(r.indicator_name);
       return `<tr class="${!r.enabled ? "disabled" : r.hit ? "" : "missed"}"><td title="${r.label}">${r.label}</td><td>${r.year}</td><td>${r.target}</td><td>${reverseResultNumber(r.actual, unit)}</td><td>${r.enabled ? reverseResultNumber(r.deviation, unit) : "—"}</td><td>${!r.enabled ? "已停用" : r.pending ? "—" : r.hit ? "命中" : "未命中"}</td></tr>`;
     }).join("")}</tbody></table>`;
-  return banner + variableTable + reasons + constraintTable + reverseNoFeasibleDiagnosis(data, constraintRows, variables);
+  return banner + variableTable + reasons + reverseAdjustmentPath(data, variables) + constraintTable + reverseNoFeasibleDiagnosis(data, constraintRows, variables);
 }
 function renderDetails(details = []) {
   const query = $("detailSearch").value.toLowerCase();
