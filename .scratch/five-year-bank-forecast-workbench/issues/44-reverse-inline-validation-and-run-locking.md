@@ -9,13 +9,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] 反向运行/约束添加校验失败 → 字段标红 + 错误条，无 alert
-- [ ] 运行中构建器与卡片编辑控件置灰，左树/右栏可正常浏览
-- [ ] 未命中约束红点有 title 说明
-- [ ] forward 模块校验交互不变
-- [ ] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
+- [x] 反向运行/约束添加校验失败 → 字段标红 + 错误条，无 alert
+- [x] 运行中构建器与卡片编辑控件置灰，左树/右栏可正常浏览
+- [x] 未命中约束红点有 title 说明
+- [x] forward 模块校验交互不变
+- [x] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
 
 ## Comments
 
 - 2026-07-20 来源：反向模块走查（agent-13 报告摩擦点 #11、#12、#14）。
 - 2026-07-20 依赖说明：#36 改运行入口、#37 改构建器校验，本票在前两者落定后统一升级反馈层，避免同一函数三次改写。
+- 2026-07-20 实现（c38e0ab）：showReverseError 内联错误条替代全部反向 alert（字段标红保留），求解运行中 task-running 置灰锁定构建器与画布，左树红点 title 明示「约束未命中」，约束清单符号同步 relation；全套测试通过。

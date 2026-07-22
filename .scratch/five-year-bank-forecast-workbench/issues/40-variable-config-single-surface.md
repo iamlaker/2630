@@ -10,14 +10,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] multi 变量卡卡面可编辑：优先级步进、年份、初始值、下限、上限、步长、联动策略、删除
-- [ ] v2 面板及其添加表单/变量列表从编辑器移除，无残留引用
-- [ ] single 变量已配置后换选指标不丢范围设置，并有切换提示
-- [ ] 字段命名统一"年份"
-- [ ] 提交体字段（priority/year/initial/lower/upper/step/linkage_strategy）不变
-- [ ] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
+- [x] multi 变量卡卡面可编辑：优先级步进、年份、初始值、下限、上限、步长、联动策略、删除
+- [x] v2 面板及其添加表单/变量列表从编辑器移除，无残留引用
+- [x] single 变量已配置后换选指标不丢范围设置，并有切换提示
+- [x] 字段命名统一"年份"
+- [x] 提交体字段（priority/year/initial/lower/upper/step/linkage_strategy）不变
+- [x] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
 
 ## Comments
 
 - 2026-07-20 来源：反向模块走查（agent-13 报告摩擦点 #6、#15）。双编辑面字段不对等；配置漂移属静默丢用户输入。
 - 2026-07-20 依赖说明：#38 先把"添加为变量"入口搬上卡面，本票再删 v2 面板，保证任何时刻都有可用入口。
+- 2026-07-20 实现（e665978）：变量卡卡面补齐步长/联动/删除，优先级改 P 步进器；编辑器 v2 面板整体移除（renderReverseVariables 及引用清除），反向 details 统一为约束清单；singleVariableByIndicator 按指标存配置，换选不丢并提示已配置数量；全套测试通过。

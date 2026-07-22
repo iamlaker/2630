@@ -9,13 +9,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] 空目标值（含区间任一限为空）→ 不添加、输入标红、提示文案
-- [ ] 相同指标+关系+年份覆盖的重复组被拒绝并提示
-- [ ] `>`/`<` 建的约束在卡片上显示为 `>`/`<`，切换关系下拉可正常改
-- [ ] 既有 UI hooks 测试（`test_reverse_constraint_builder_grouped_ui_hooks`）保持绿
-- [ ] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
+- [x] 空目标值（含区间任一限为空）→ 不添加、输入标红、提示文案
+- [x] 相同指标+关系+年份覆盖的重复组被拒绝并提示
+- [x] `>`/`<` 建的约束在卡片上显示为 `>`/`<`，切换关系下拉可正常改
+- [x] 既有 UI hooks 测试（`test_reverse_constraint_builder_grouped_ui_hooks`）保持绿
+- [x] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
 
 ## Comments
 
 - 2026-07-20 来源：反向模块走查（agent-13 报告摩擦点 #2、#9、#16）。空值静默变 0 属阻断级——用户少填一格就得到一条"≥0"废约束且无任何提示。
 - 2026-07-20 边界：查重按"组"比较（同 group 元数据），旧的无 group_id 遗留记录各自成组不参与查重；不引入后端改动（group_* 字段后端本就忽略）。
+- 2026-07-20 实现（8555695）：空串目标值拦截并标红（cb-invalid），同指标+关系+年份覆盖的重复组拒绝，单记录卡与摘要行/清单以 relation 元数据忠实显示 >、<，回写映射 kind（>→min、<→max）；全套测试通过。

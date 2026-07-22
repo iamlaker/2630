@@ -11,15 +11,16 @@
 
 **Status:** ready-for-agent
 
-- [ ] 可行/无解结论横幅 + 搜索摘要一句话
-- [ ] 变量建议表（v2 含优先级分组与未启用标注）
-- [ ] 约束满足表（未命中高亮，组标签可辨）
-- [ ] 无解诊断：偏差排序 + 触边建议 + 转软提示 + v2 no_feasible_reason 展示
-- [ ] 数字千分位、指标名悬浮全名
-- [ ] 导出反向结果按钮在横幅处可用（可行时）
-- [ ] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
+- [x] 可行/无解结论横幅 + 搜索摘要一句话
+- [x] 变量建议表（v2 含优先级分组与未启用标注）
+- [x] 约束满足表（未命中高亮，组标签可辨）
+- [x] 无解诊断：偏差排序 + 触边建议 + 转软提示 + v2 no_feasible_reason 展示
+- [x] 数字千分位、指标名悬浮全名
+- [x] 导出反向结果按钮在横幅处可用（可行时）
+- [x] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
 
 ## Comments
 
 - 2026-07-20 来源：反向模块走查（agent-13 报告摩擦点 #10，agent-14 报告 §1/§6）。后端早已返回 actual/deviation/hit_boundary/no_feasible_reason，前端未展示——无解诊断是把已有数据接上线，不碰后端契约与搜索算法。
 - 2026-07-20 边界：本票只动结果展示层；v2 调整路径时间线在 #42；运行按钮与预算控制在 #39/#43。
+- 2026-07-20 实现（af3c89b）：renderReverseResultCards 输出结论横幅（可行时内联导出）、变量建议表（基准/建议/调整量/边界，千分位）、约束满足表（同年 min+max 合并区间行、未命中高亮）、无解诊断（缺口排序/触边建议/转软提示/no_feasible_reason）；全套测试通过。

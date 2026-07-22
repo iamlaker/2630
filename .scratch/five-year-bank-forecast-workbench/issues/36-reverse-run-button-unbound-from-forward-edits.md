@@ -6,14 +6,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] single 模块：无正向编辑时，有变量+启用约束 → 顶栏与编辑器求解按钮可用
-- [ ] multi 模块：同上（变量取 `state.reverseVariables`）
-- [ ] 缺变量或缺约束时按钮禁用，并有 title/tooltip 说明缺什么
-- [ ] forward 模块解禁行为不变（回归）
-- [ ] 运行中（`state.task`）三个模块按钮均禁用
-- [ ] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
+- [x] single 模块：无正向编辑时，有变量+启用约束 → 顶栏与编辑器求解按钮可用
+- [x] multi 模块：同上（变量取 `state.reverseVariables`）
+- [x] 缺变量或缺约束时按钮禁用，并有 title/tooltip 说明缺什么
+- [x] forward 模块解禁行为不变（回归）
+- [x] 运行中（`state.task`）三个模块按钮均禁用
+- [x] `python -m unittest discover -s tests` 全绿；`node --check web/app.js` 通过
 
 ## Comments
 
 - 2026-07-20 来源：反向模块走查（agent-13 报告摩擦点 #1）。同一动作三个入口可用状态不一致，用户第一反应是"功能坏了"，属阻断级。
 - 2026-07-20 注意：ticket 39 会把三个入口收敛为一个，本票只修解禁逻辑，不动按钮布局，避免与 39 冲突。
+- 2026-07-20 实现（54d015c）：新增 reverseRunAvailability（single 依据已选 confirmed 指标、multi 依据变量列表，均要求启用约束），setCalculateEnabled/setRunning 按模块分派，禁用时 title 说明原因；renderCardGrid 末尾统一刷新按钮状态；UI hooks 测试先红后绿，全套测试通过。
