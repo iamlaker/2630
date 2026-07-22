@@ -196,7 +196,10 @@ function inputStateDots(item) {
         (activeReverseConstraints().some((x) => x.indicator_id === item.id) &&
           constraintMissed(item.name)),
       "error",
-      "异常",
+      activeReverseConstraints().some((x) => x.indicator_id === item.id) &&
+        constraintMissed(item.name)
+        ? "约束未命中"
+        : "异常",
     ],
   ]);
 }
@@ -471,6 +474,10 @@ function setRunning(running) {
   ["calculate", "calculateTop"].forEach((id) => {
     $(id).disabled = running || unavailable;
   });
+  document.body.classList.toggle(
+    "task-running",
+    Boolean(running) && (state.module === "single" || state.module === "multi"),
+  );
   $("taskProgress").hidden = !running;
   if (state.data?.templates) renderTemplateSwitch();
 }
@@ -997,8 +1004,22 @@ function renderConstraintValueInputs() {
         ? field($("cbYear").value, $("cbYear").value)
         : field("all", "五年同值");
 }
+function showReverseError(message) {
+  const box = $("reverseErrors");
+  if (!box) return alert(message);
+  box.textContent = message;
+  box.hidden = false;
+}
+function clearReverseError() {
+  const box = $("reverseErrors");
+  if (box) box.hidden = true;
+}
 function addConstraintGroup() {
-  if (!state.data || !$("cbMetric").value) return alert("请选择约束指标");
+  $("cbMetric").classList.remove("invalid");
+  if (!state.data || !$("cbMetric").value) {
+    $("cbMetric").classList.add("invalid");
+    return showReverseError("请选择约束指标");
+  }
   const [indicator_type, indicator_id, indicator_name] = $("cbMetric").value.split("|"),
     relation = $("cbRelation").value,
     scope = $("cbScope").value,
@@ -1026,19 +1047,19 @@ function addConstraintGroup() {
       if (lower == null || upper == null) {
         if (lower == null) markInvalid(`${key}|0`);
         if (upper == null) markInvalid(`${key}|1`);
-        return alert("请输入完整的区间上下限");
+        return showReverseError("请输入完整的区间上下限");
       }
       if (lower > upper) {
         markInvalid(`${key}|0`);
         markInvalid(`${key}|1`);
-        return alert("区间下限不能大于上限");
+        return showReverseError("区间下限不能大于上限");
       }
       records.push({ year, kind: "min", value: lower }, { year, kind: "max", value: upper });
     } else {
       const value = entries[key];
       if (value == null) {
         markInvalid(key);
-        return alert("请输入约束目标值");
+        return showReverseError("请输入约束目标值");
       }
       records.push({ year, kind: kinds[0], value });
     }
@@ -1049,7 +1070,7 @@ function addConstraintGroup() {
     duplicate = constraintGroups().some((group) =>
       group.records.some((r) => r.enabled !== false) &&
       signatureOf(group.records, group.records[0].indicator_id || group.records[0].indicator_name) === newSignature);
-  if (duplicate) return alert("已存在相同指标、关系与年份的约束，请直接编辑现有约束卡");
+  if (duplicate) return showReverseError("已存在相同指标、关系与年份的约束，请直接编辑现有约束卡");
   const scopeLabel = scope === "all" ? "五年同值" : scope === "each" ? "逐年" : `${targetYears[0]} 单年`,
     valueLabel = pair ? `[${records[0].value}, ${records[1].value}]` : `${records[0].value}`,
     group_label = scope === "each"
@@ -1073,6 +1094,7 @@ function addConstraintGroup() {
   syncReverseDraft();
   renderReverseConstraints();
   renderCardGrid();
+  clearReverseError();
 }
 function constraintGroups() {
   const buckets = new Map();
@@ -1089,7 +1111,8 @@ function constraintGroups() {
 }
 function constraintGroupText(group) {
   const first = group.records[0],
-    base = first.group_label || `${first.indicator_name} · ${first.year} · ${first.kind === "min" ? "≥" : first.kind === "max" ? "≤" : "="} ${first.value}`;
+    symbol = first.relation && first.relation !== "between" ? first.relation : first.kind === "min" ? "≥" : first.kind === "max" ? "≤" : "=",
+    base = first.group_label || `${first.indicator_name} · ${first.year} · ${symbol} ${first.value}`;
   return `${base} · ${first.hard ? "硬约束" : "软目标"}${group.records.some((x) => x.enabled === false) ? " · 已停用" : ""}`;
 }
 function constraintGroupYearLines(group) {
@@ -1185,16 +1208,16 @@ function renderReverseConstraints() {
   if (state.data) renderNav();
 }
 async function runReverse() {
-  if (isReadOnly()) return alert("历史模板只读，不能发起求解");
+  if (isReadOnly()) return showReverseError("历史模板只读，不能发起求解");
   if (
     !state.selected?.rule ||
     !state.reverseConstraints.some((x) => x.enabled) ||
     state.task
   )
-    return alert("请选择 confirmed 输入变量并启用至少一个约束");
+    return showReverseError("请选择已确认输入变量并启用至少一个约束");
   const config = ensureSingleVariable(state.selected);
   if (!(Number.isFinite(config.lower) && Number.isFinite(config.upper) && Number.isFinite(config.initial) && config.lower <= config.initial && config.initial <= config.upper))
-    return alert("请检查变量初始值与搜索范围上下限");
+    return showReverseError("请检查变量初始值与搜索范围上下限");
   const body = {
       template_version_id: state.data.template.id,
       variable: {
@@ -1211,6 +1234,7 @@ async function runReverse() {
       engine_mode: $("engineMode").value,
     };
   persistWorkbench();
+  clearReverseError();
   setRunning(true);
   state.taskKind = "reverse";
   try {
@@ -1238,9 +1262,9 @@ async function runReverse() {
   }
 }
 function addReverseVariable(item = state.selected) {
-  if (!canEdit(item)) return alert("请选择已确认的输入指标作为变量");
+  if (!canEdit(item)) return showReverseError("请选择已确认的输入指标作为变量");
   if (state.reverseVariables.some((x) => x.indicator_id === item.id))
-    return alert("该变量已添加");
+    return showReverseError("该变量已添加");
   const range = item.rule.allowed_range || [],
     year = "2030";
   state.reverseVariables.push({
@@ -1257,13 +1281,15 @@ function addReverseVariable(item = state.selected) {
   });
   syncReverseDraft();
   renderCardGrid();
+  clearReverseError();
 }
 async function runReverseV2() {
-  if (isReadOnly()) return alert("历史模板只读，不能发起求解");
+  if (isReadOnly()) return showReverseError("历史模板只读，不能发起求解");
   if (!state.reverseVariables.length || !state.reverseConstraints.some((x) => x.enabled) || state.task)
-    return alert("请添加可调变量并启用至少一个目标约束");
+    return showReverseError("请添加可调变量并启用至少一个目标约束");
   if (state.reverseVariables.some((x) => !Number.isFinite(x.initial) || !Number.isFinite(x.lower) || !Number.isFinite(x.upper) || x.initial < x.lower || x.initial > x.upper || x.lower > x.upper || !Number.isFinite(x.priority)))
-    return alert("请检查变量优先级和允许范围");
+    return showReverseError("请检查变量优先级和允许范围");
+  clearReverseError();
   setRunning(true);
   state.taskKind = "reverse";
   try {

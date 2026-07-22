@@ -305,6 +305,22 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("超 PRD 15 秒预期", app)
         self.assertIn(".cb-eta.warn", css)
 
+    def test_reverse_inline_validation_and_run_locking(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        html = (self.web / "index.html").read_text(encoding="utf-8")
+        css = (self.web / "style.css").read_text(encoding="utf-8")
+        # 反向校验失败走内联错误条而非 alert
+        self.assertIn('id="reverseErrors"', html)
+        self.assertIn("function showReverseError(", app)
+        self.assertIn("function clearReverseError(", app)
+        self.assertNotIn('alert("请添加可调变量', app)
+        self.assertNotIn('alert("请输入约束目标值', app)
+        # 运行中锁定构建器与卡片（左树/右栏不受影响）
+        self.assertIn("task-running", app)
+        self.assertIn("body.task-running #constraintBuilder", css)
+        # 未命中约束的红点有明确文案
+        self.assertIn("约束未命中", app)
+
     def test_variable_config_single_surface(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         # 变量卡卡面全字段：步长、联动、优先级步进器、删除

@@ -93,6 +93,9 @@
 .constraint-builder .cb-budget input { width: 52px; margin-left: 2px; }
 .constraint-builder .cb-eta { font-size: 10px; color: var(--muted); }
 .constraint-builder .cb-eta.warn { color: #b26a00; font-weight: 600; }
+.constraint-builder select.invalid { border-color: #c0392b; background: #fdf0ee; }
+.reverse-errors { margin: 6px 14px 0; padding: 7px 10px; border: 1px solid #eec5bf; border-radius: 6px; background: #fdf3f2; color: #a03024; font-size: 11px; }
+body.task-running #constraintBuilder, body.task-running #cardGrid { pointer-events: none; opacity: 0.55; }
 .placeholder-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .placeholder-actions p { margin: 0; font-size: 11px; color: var(--muted); }
 .placeholder-actions button { font-size: 11px; }
