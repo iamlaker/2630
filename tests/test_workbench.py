@@ -248,6 +248,15 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn('value="lt"', app)
         self.assertIn('gt: ["min", ">"]', app)
 
+    def test_multi_add_variable_entry_on_card(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # multi 占位卡直接提供添加为变量/约束入口，addReverseVariable 可接收任意指标
+        self.assertIn("function placeholderCardBody(", app)
+        self.assertIn("data-add-variable", app)
+        self.assertIn("data-add-constraint", app)
+        self.assertIn("function addReverseVariable(item = state.selected)", app)
+        self.assertIn("function focusConstraintBuilderFor(", app)
+
     def test_forward_comparison_center_canvas_ui_hooks(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")
         html = (self.web / "index.html").read_text(encoding="utf-8")

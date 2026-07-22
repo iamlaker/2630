@@ -1151,23 +1151,23 @@ async function runReverse() {
     });
   }
 }
-function addReverseVariable() {
-  if (!canEdit(state.selected)) return alert("请选择 confirmed 输入指标");
-  if (state.reverseVariables.some((x) => x.indicator_id === state.selected.id))
+function addReverseVariable(item = state.selected) {
+  if (!canEdit(item)) return alert("请选择已确认的输入指标作为变量");
+  if (state.reverseVariables.some((x) => x.indicator_id === item.id))
     return alert("该变量已添加");
-  const range = state.selected.rule.allowed_range || [],
+  const range = item.rule.allowed_range || [],
     year = "2030";
   state.reverseVariables.push({
-    rule_id: state.selected.rule.rule_id,
-    indicator_id: state.selected.id,
-    indicator_name: state.selected.name,
+    rule_id: item.rule.rule_id,
+    indicator_id: item.id,
+    indicator_name: item.name,
     priority: state.reverseVariables.length + 1,
     year,
-    initial: state.selected.baseline[year],
-    lower: range[0] ?? state.selected.baseline[year],
-    upper: range[1] ?? state.selected.baseline[year],
-    step: state.selected.rule.minimum_step,
-    linkage_strategy: state.selected.rule.linkage_strategy || "independent",
+    initial: item.baseline[year],
+    lower: range[0] ?? item.baseline[year],
+    upper: range[1] ?? item.baseline[year],
+    step: item.rule.minimum_step,
+    linkage_strategy: item.rule.linkage_strategy || "independent",
   });
   syncReverseDraft();
   renderReverseVariables();
@@ -1479,6 +1479,18 @@ function constraintCardBody(constraint, index) {
       : constraint.kind === "min" ? "≥" : constraint.kind === "max" ? "≤" : "=";
   return `<div class="constraint-form"><label>年份<select data-cc="year" data-index="${index}">${years.map((year) => `<option ${String(year) === String(constraint.year) ? "selected" : ""}>${year}</option>`).join("")}</select></label><label>关系<select data-cc="kind" data-index="${index}"><option value="gt" ${relation === ">" ? "selected" : ""}>&gt;</option><option value="min" ${relation === "≥" ? "selected" : ""}>≥</option><option value="target" ${relation === "=" ? "selected" : ""}>=</option><option value="max" ${relation === "≤" ? "selected" : ""}>≤</option><option value="lt" ${relation === "<" ? "selected" : ""}>&lt;</option></select></label><label class="constraint-value">目标值<input type="number" data-cc="value" data-index="${index}" value="${constraint.value}"></label></div>${range ? `<input class="constraint-scale" type="range" data-cc-slider="${index}" min="${range[0]}" max="${range[1]}" step="${sliderStep(item, range)}" value="${constraint.value}">` : ""}<div class="constraint-summary">${constraintSummaryText(constraint)}</div><div class="card-foot"><button data-cc-hard="${index}">${constraint.hard ? "切换为软目标" : "切换为硬约束"}</button><label><input type="checkbox" data-cc-enable="${index}" ${constraint.enabled !== false ? "checked" : ""}> 启用</label></div>`;
 }
+function placeholderCardBody(item) {
+  if (state.module !== "multi") return "<p>选择后可添加为变量或约束</p>";
+  const editable = canEdit(item);
+  return `<div class="placeholder-actions"><p>该指标尚未加入求解</p><button class="primary" data-add-variable="${item.id}" ${editable ? "" : 'disabled title="仅已确认输入指标可作变量"'}>添加为变量</button><button data-add-constraint="${item.id}">添加为约束</button></div>`;
+}
+function focusConstraintBuilderFor(item) {
+  $("cbSearch").value = "";
+  renderConstraintMetrics();
+  $("cbMetric").value = `input|${item.id}|${item.name}`;
+  $("constraintBuilder").scrollIntoView({ block: "nearest" });
+  $("cbRelation").focus();
+}
 function parameterCard(id) {
   const item = state.data.parameters.find((parameter) => parameter.id === id);
   if (!item) return "";
@@ -1497,7 +1509,7 @@ function parameterCard(id) {
           ? constraintGroup.records.length > 1
             ? constraintGroupCardBody(constraintGroup)
             : constraintCardBody(state.reverseConstraints[constraintIndex], constraintIndex)
-          : "<p>选择后可添加为变量或约束</p>";
+          : placeholderCardBody(item);
   const subtitle = kind === "variable" ? `搜索范围 · ${item.unit || ""}` : kind === "constraint" ? `约束目标 · ${item.unit || ""}` : `${item.group} · ${item.unit || ""}`;
   return `<article class="work-card ${kind} ${state.selected?.id === id ? "selected" : ""}" draggable="true" data-card="${id}"><div class="work-card-head">${kind ? `<span class="card-kind">${kind === "variable" ? "变量" : "约束"}</span>` : ""}<div><h3 title="${item.name}">${item.name}</h3><small>${subtitle}</small></div><span class="spacer"></span><button data-open-card="${id}">高级</button><button data-remove-card="${id}">×</button></div><div class="work-card-body">${body}</div><div class="work-card-actions"><details class="card-sort-menu"><summary>排序</summary><div><button data-move="${id}|-1">前移</button><button data-move="${id}|1">后移</button></div></details><span class="spacer"></span><button data-reset-card="${id}">恢复基准</button></div></article>`;
 }
@@ -1723,6 +1735,14 @@ function renderCardGrid() {
       }
     };
   });
+  document.querySelectorAll("[data-add-variable]").forEach((button) => (button.onclick = () => {
+    const item = state.data.parameters.find((x) => x.id === button.dataset.addVariable);
+    if (item) addReverseVariable(item);
+  }));
+  document.querySelectorAll("[data-add-constraint]").forEach((button) => (button.onclick = () => {
+    const item = state.data.parameters.find((x) => x.id === button.dataset.addConstraint);
+    if (item) focusConstraintBuilderFor(item);
+  }));
   bindCardConfigEvents();
   setCalculateEnabled();
 }
