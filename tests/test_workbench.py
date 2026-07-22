@@ -216,11 +216,12 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn("constraintGroupCardBody(", app)
         for hook in ("data-cg-enable", "data-cg-remove", "data-cg-hard"):
             self.assertIn(hook, app)
-        # 旧编辑器 details 添加表单移除；约束列表与运行按钮保留
+        # 旧编辑器 details 添加表单移除；约束列表保留，运行按钮已单点化到顶栏
         self.assertNotIn('id="reverseMetric"', app)
         self.assertNotIn('id="addConstraint"', app)
         self.assertNotIn("reverse-add", app)
-        self.assertIn('id="runReverse"', app)
+        self.assertNotIn('id="runReverse"', app)
+        self.assertNotIn('id="runReverseV2"', app)
         self.assertIn('id="reverseConstraints"', app)
         # 样式
         self.assertIn(".constraint-builder", css)
@@ -247,6 +248,17 @@ class ProductionWorkbenchUiTests(unittest.TestCase):
         self.assertIn('value="gt"', app)
         self.assertIn('value="lt"', app)
         self.assertIn('gt: ["min", ">"]', app)
+
+    def test_reverse_terminology_and_single_run_entry(self):
+        app = (self.web / "app.js").read_text(encoding="utf-8")
+        # 唯一运行入口为顶栏按钮；反向模块文案统一为"开始求解"，编辑器内按钮仅正向显示
+        self.assertIn('$("calculateTop").textContent = forward ? "执行测算" : "开始求解"', app)
+        self.assertIn('$("calculate").hidden = !forward', app)
+        # 进度与结果文案统一"求解"口径
+        self.assertIn("单变量求解 第", app)
+        self.assertIn("多输入求解 第", app)
+        self.assertIn("次测算`", app)
+        self.assertIn("求解摘要", app)
 
     def test_multi_add_variable_entry_on_card(self):
         app = (self.web / "app.js").read_text(encoding="utf-8")

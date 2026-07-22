@@ -456,9 +456,9 @@ function stageLabel(stage) {
   if (stage.startsWith("comparison_scenario_"))
     return `对比场景 ${stage.split("_").pop()}`;
   if (stage.startsWith("reverse_v2_search_"))
-    return `v2 优先级搜索 第 ${stage.split("_").pop()} 次`;
+    return `多输入求解 第 ${stage.split("_").pop()} 次测算`;
   if (stage.startsWith("reverse_search_"))
-    return `v1 单变量搜索 第 ${stage.split("_").pop()} 次`;
+    return `单变量求解 第 ${stage.split("_").pop()} 次测算`;
   return STAGE_LABELS[stage] || stage;
 }
 function setRunning(running) {
@@ -563,7 +563,7 @@ async function poll() {
               `<article class="card"><h3>${x.indicator_name} · P${x.priority || 1}</h3><div class="metric">${formatResultValue(x.suggested_value ?? x.required_value, unitForIndicator(x.indicator_name)) || "—"}</div><div class="years-mini">调整 ${formatResultValue(x.adjustment, unitForIndicator(x.indicator_name)) || "—"} · ${x.hit_boundary ? "触及边界" : "范围内"}</div>${x.reason ? `<div class="years-mini reason">启用原因：${x.reason}</div>` : ""}</article>`,
           )
           .join("") +
-        `<article class="card"><h3>搜索摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${formatResultValue(data.soft_deviation) || "—"}</div></article>` +
+        `<article class="card"><h3>求解摘要</h3><div class="metric">${data.feasible ? "可行" : "无解"}</div><div class="years-mini">${data.search_count}/${data.calculation_details.max_evaluations || data.search_count} 次 · 软偏差 ${formatResultValue(data.soft_deviation) || "—"}</div></article>` +
         data.constraints
           .map(
             (x) =>
@@ -688,7 +688,7 @@ function renderTaskProgress(task) {
     ? ` · ${comparison.completed || 0}/${comparison.total} · ${comparison.current_scenario || ""}`
     : "";
   const search = comparison.search_count
-    ? ` · 搜索 ${comparison.search_count}/${comparison.max_evaluations || "?"}`
+    ? ` · 第 ${comparison.search_count}/${comparison.max_evaluations || "?"} 次测算`
     : "";
   const engine = ` · ${task.engine_mode || "cold_com"}${task.worker_id ? ` · worker ${task.worker_id.slice(0, 8)}` : ""} · 排队 ${Math.round(task.queue_wait_ms || 0)}ms · 取消 ${task.cancel_status || "not_requested"}`;
   $("taskMeta").innerHTML =
@@ -871,16 +871,14 @@ function setupReverse() {
     b = document.createElement("details");
   b.className = "reverse";
   b.innerHTML =
-    '<summary>单变量反向测算 v1</summary><p>当前指标作为变量；变量初始值与搜索范围在卡片上配置，约束在画布顶部的约束构建器中添加，此处查看已添加约束后手动搜索。</p><div id="reverseConstraints"></div><button class="primary" id="runReverse">开始反向测算</button>';
+    '<summary>单变量反向 · 约束清单</summary><p>当前指标作为变量；变量初始值与搜索范围在卡片上配置，约束在画布顶部的约束构建器中添加。配置完成后使用顶栏「开始求解」。</p><div id="reverseConstraints"></div>';
   host.parentElement.insertBefore(b, host);
   const v2 = document.createElement("details");
   v2.className = "reverse";
   v2.innerHTML =
-    '<summary>多输入优先级反推 v2</summary><p>选择当前 confirmed 输入加入变量，按优先级逐项搜索；最多 15 次正向测算。</p><button id="addReverseVariable">加入当前输入</button><div id="reverseVariables"></div><button class="primary" id="runReverseV2">开始 v2 反推</button>';
+    '<summary>多输入反推 · 变量管理</summary><p>在卡片上「添加为变量」，按优先级逐级求解；最多 15 次正向测算。配置完成后使用顶栏「开始求解」。</p><button id="addReverseVariable">加入当前输入</button><div id="reverseVariables"></div>';
   host.parentElement.insertBefore(v2, host);
-  $("runReverse").onclick = runReverse;
-  $("addReverseVariable").onclick = addReverseVariable;
-  $("runReverseV2").onclick = runReverseV2;
+  $("addReverseVariable").onclick = () => addReverseVariable();
   renderReverseConstraints();
   renderReverseVariables();
 }
@@ -1099,7 +1097,7 @@ function renderReverseConstraints() {
   if (state.data) renderNav();
 }
 async function runReverse() {
-  if (isReadOnly()) return alert("历史模板只读，不能发起反向测算");
+  if (isReadOnly()) return alert("历史模板只读，不能发起求解");
   if (
     !state.selected?.rule ||
     !state.reverseConstraints.some((x) => x.enabled) ||
@@ -1134,7 +1132,7 @@ async function runReverse() {
         body: JSON.stringify(body),
       }),
       task = await response.json();
-    if (!response.ok) throw Error(task.error || "反向测算提交失败");
+    if (!response.ok) throw Error(task.error || "求解提交失败");
     state.task = task.task_id;
     renderTaskProgress(task);
     setTimeout(poll, 500);
@@ -1206,7 +1204,7 @@ function renderReverseVariables() {
   if (state.data) renderNav();
 }
 async function runReverseV2() {
-  if (isReadOnly()) return alert("历史模板只读，不能发起反向测算");
+  if (isReadOnly()) return alert("历史模板只读，不能发起求解");
   if (!state.reverseVariables.length || !state.reverseConstraints.some((x) => x.enabled) || state.task)
     return alert("请添加可调变量并启用至少一个目标约束");
   if (state.reverseVariables.some((x) => !Number.isFinite(x.initial) || !Number.isFinite(x.lower) || !Number.isFinite(x.upper) || x.initial < x.lower || x.initial > x.upper || x.lower > x.upper || !Number.isFinite(x.priority)))
@@ -1371,9 +1369,11 @@ function updateReverseVisibility() {
     item.open = !item.hidden;
   });
   $("constraintBuilder").hidden = isReadOnly() || state.module === "forward" || state.module === "rules";
-  $("calculate").textContent = state.module === "forward" ? "执行测算" : state.module === "single" ? "开始单变量求解" : "开始多输入求解";
-  $("calculate").onclick = state.module === "forward" ? calculate : state.module === "single" ? runReverse : runReverseV2;
-  $("calculateTop").onclick = $("calculate").onclick;
+  const forward = state.module === "forward";
+  $("calculate").hidden = !forward;
+  $("calculate").onclick = forward ? calculate : null;
+  $("calculateTop").textContent = forward ? "执行测算" : "开始求解";
+  $("calculateTop").onclick = forward ? calculate : state.module === "single" ? runReverse : runReverseV2;
 }
 
 function cardsPerPage() {
@@ -1896,7 +1896,7 @@ const SCENARIO_TYPE_LABELS = {
   optimistic: "乐观",
   pessimistic: "悲观",
   custom: "自定义",
-  reverse_result: "反向测算",
+  reverse_result: "反向求解",
 };
 function unitForIndicator(name) {
   const param = (state.data?.parameters || []).find((p) => p.name === name);
@@ -2047,7 +2047,7 @@ function exportCurrentScenario() {
 }
 function exportReverseResult() {
   const result = state.reverseResult;
-  if (!result) return alert("请先完成反向测算");
+  if (!result) return alert("请先完成反向求解");
   exportExcel("reverse", {
     ...result,
     metadata: {
